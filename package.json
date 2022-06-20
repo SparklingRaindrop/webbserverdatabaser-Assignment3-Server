@@ -1,0 +1,26 @@
+{
+  "name": "webbserverdatabaser-assignment3-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate": "knex migrate:latest --knexfile data/knexfile.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com-School:SparklingRaindrop/webbserverdatabaser-Assignment3-Server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.1",
+    "express": "^4.18.1",
+    "express-session": "^1.17.3",
+    "knex": "^2.1.0",
+    "socket.io": "^4.5.1",
+    "sqlite3": "^5.0.8"
+  }
+}
