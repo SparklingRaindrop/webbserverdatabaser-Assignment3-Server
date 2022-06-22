@@ -2,19 +2,25 @@ const Message = require("./Message");
 const Room = require("./Room");
 const User = require("./User");
 
-class SystemHandler {
+class EventHandler {
     constructor(io) {
-        this.roomDict = {
-            lobby: new Room({name: 'lobby'}),
-        };
-        this.connectedUsers = {};
         this.io = io;
+        this.userDict = {};
+        this.roomDict = {
+            lobby: new Room({
+                name: 'lobby',
+                createdBy: { name: 'server' }
+            }),
+        };
     }
 
-    addNewUser(socket, userName) {
-        const newUser = new User(userName, socket);
+    handleReady(socket, userName) {
+        const newUser = new User({
+            userName,
+            socketId: socket.id
+        });
         // Add new user to the list. Key = socket ID
-        this.connectedUsers[socket.id] = newUser;
+        this.userDict[socket.id] = newUser;
         // Using this in middleware
         socket.user = newUser;
         
@@ -23,16 +29,20 @@ class SystemHandler {
 
         socket.emit('user_initialized', {
             user: {
-                ...this.getUserState(newUser)
+                ...this.getUserState(newUser.socketId)
             },
             roomList: this.getRoomList(),
         });
+        this.notifyAll('new_client', `${userName} has joined`);
+        return {
+            status: 200
+        }
     }
 
-    getUserState(user) {
-        const currentRoom = this.getCurrentRoomByUserId(user.getSocketId()).toObj();
+    getUserState(id) {
+        const currentRoom = this.getCurrentRoomByUserId(id).toObj();
         return {
-            user: user.getState(),
+            user: this.userDict[id].getState(),
             current: currentRoom,
         }
     }
@@ -128,4 +138,4 @@ class SystemHandler {
     }
 }
 
-module.exports = SystemHandler;
+module.exports = EventHandler;

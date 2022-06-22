@@ -1,7 +1,7 @@
 class User {
-    constructor(userName, socket) {
-        this.socket = socket;
+    constructor({userName, socketId}) {
         this.name = userName;
+        this.socketId = socketId;
     }
     leave() {
         return (room) => {
@@ -17,13 +17,10 @@ class User {
     getCurrentRoom() {
         return this.currentRoom;
     }
-    getSocketId() {
-        return this.socket.id;
-    }
     getState() {
         return {
             name: this.name,
-            socketId: this.socket.id
+            socketId: this.socketId,
         };
     }
 }

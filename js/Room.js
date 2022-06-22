@@ -24,7 +24,7 @@ class Room {
         return {
             name: this.name,
             members: this.getMembers(),
-            createdBy: this.createdBy ? this.createdBy.getState() : { name: 'server' },
+            createdBy: this.createdBy,
         }
     }
 }

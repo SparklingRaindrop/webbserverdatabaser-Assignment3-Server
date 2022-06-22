@@ -5,7 +5,7 @@ const cors = require('cors');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const logHandler = require('./js/LogHandler');
-const SystemHandler = require('./js/SystemHandler');
+const EventHandler = require('./js/EventHandler');
 
 const USERNAME = 'admin';
 const PASSWORD = 'aaaa';
@@ -56,7 +56,7 @@ const options = {
 };
 
 const io = new Server(httpServer, options);
-const systemHandler = new SystemHandler(io);
+const eventHandler = new EventHandler(io);
 
 /* 
 function wrap(middleware) {
@@ -98,11 +98,11 @@ io.on('connection', (socket) => {
     // list of all the sockets Array.from(io.sockets.sockets).map(socket => socket[0])
 
 
-    socket.on('ready', async ({userName}) => {
+    socket.on('ready', ({userName}, callback) => {
         // Check if userName is not empty
         console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} set username as ${userName}.`);
-        systemHandler.addNewUser(socket, userName);
-        systemHandler.notifyAll('new_client', `${userName} has joined`);
+        const response = eventHandler.handleReady(socket, userName);
+        callback(response);
     });
 
     // Receiver for direct message 
