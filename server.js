@@ -116,6 +116,11 @@ io.on('connection', (socket) => {
         const response = eventHandler.handleJoinRoom(socket.id, roomName);
         callback(response);
     });
+
+    socket.on('remove_room', (roomName, callback) => {
+        const response = eventHandler.handleRemoveRoom(socket, data);
+        callback(response);
+    });
 });
 
 httpServer.listen(process.env.PORT);

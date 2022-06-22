@@ -96,6 +96,10 @@ class EventHandler {
         }
     }
 
+    handleRemoveRoom(socket, data) {
+
+    }
+    
     getUserState(id) {
         const currentRoom = this.getCurrentRoomByUserId(id).toObj();
         return {
