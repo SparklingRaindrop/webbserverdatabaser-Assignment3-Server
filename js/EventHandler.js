@@ -102,6 +102,10 @@ class EventHandler {
         }
     }
 
+    async handleTransportClose(id) {
+        await this.dh.removeUser(id);
+    }
+
     handleRemoveRoom(socket, data) {
 
     }

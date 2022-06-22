@@ -97,7 +97,6 @@ io.use(logHandler);
 io.on('connection', (socket) => {
     // list of all the sockets Array.from(io.sockets.sockets).map(socket => socket[0])
 
-
     socket.on('ready', ({userName}, callback) => {
         // Check if userName is not empty
         console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} set username as ${userName}.`);
@@ -115,6 +114,12 @@ io.on('connection', (socket) => {
     socket.on('join_room', (roomName, callback) => {
         const response = eventHandler.handleJoinRoom(socket.id, roomName);
         callback(response);
+    });
+
+    socket.on("disconnect", (reason) => {
+        if (reason === 'transport close') {
+            eventHandler.handleTransportClose(socket.id);
+        }
     });
 
     socket.on('remove_room', (roomName, callback) => {

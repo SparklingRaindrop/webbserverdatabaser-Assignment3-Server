@@ -72,6 +72,20 @@ class DataHandler {
         });
     }
     
+    removeUser(id) {
+        return new Promise(function(resolve, reject) {
+            db.get(`Delete FROM User WHERE id = $id`, {
+                $id: id
+            }, (error, row) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve(row);
+            });
+        });
+    }
+
     generateParams(newDataObj) {
         const targets = Object.keys(newDataObj).reduce((result, key) => {
             result += `${result !== '' ? ', ' : ''}${key} = $${key}`;
@@ -89,6 +103,7 @@ class DataHandler {
             parameters
         };
     }
+
 }
 
 
