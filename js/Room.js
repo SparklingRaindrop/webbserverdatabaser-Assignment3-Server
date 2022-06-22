@@ -20,7 +20,6 @@ class Room {
         this.members = this.members.filter(member => member.getSocketId() !== user.getSocketId());
     }
     toObj() {
-        console.log(this);
         return {
             name: this.name,
             members: this.getMembers(),

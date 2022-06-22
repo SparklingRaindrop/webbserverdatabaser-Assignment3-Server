@@ -6,7 +6,12 @@ class Message {
         this.timestamp = new Date();
     }
     toObj() {
-        return {...this}
+        return {
+            content: this.content,
+            sender: this.sender.getState(),
+            receiver: this.receiver ? this.receiver.getState() : null,
+            timestamp: this.timestamp,
+        }
     }
 }
 

@@ -1,18 +1,15 @@
 class User {
-    constructor({userName, socketId}) {
+    constructor({userName, socket, currentRoom}) {
         this.name = userName;
-        this.socketId = socketId;
+        this.socket = socket;
+        this.currentRoom = currentRoom;
     }
-    leave() {
-        return (room) => {
-            socket.leave(room.getName());
-        }
+    leave(room) {
+        this.socket.leave(room.getName());
     }
-    join() {
-        return (room) => {
-            this.socket.currentRoom = room;
-            socket.join(room.getName());
-        }
+    join(room) {
+        this.socket.currentRoom = room;
+        this.socket.join(room.getName());
     }
     getCurrentRoom() {
         return this.currentRoom;
@@ -20,8 +17,11 @@ class User {
     getState() {
         return {
             name: this.name,
-            socketId: this.socketId,
+            socketId: this.socket.id,
         };
+    }
+    getSocketId() {
+        return this.socket.id;
     }
 }
 

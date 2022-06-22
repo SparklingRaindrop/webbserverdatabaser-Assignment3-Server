@@ -8,13 +8,14 @@ function logHandler(socket, next) {
     });
 
     socket.onAny((event, data) => {
+        console.log('logwriter', event);
         let content;
         switch(event) {
             case 'send_msg':
                 const { message, receiver } = data;
                 content = `"${message}" to ${receiver ?
                     `ID: ${receiver}` :
-                    socket.user.currentRoom.getName()
+                    socket.user.getCurrentRoom().getName()
                 }`;
                 break;
 

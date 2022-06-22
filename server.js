@@ -105,9 +105,10 @@ io.on('connection', (socket) => {
         callback(response);
     });
 
-    // Receiver for direct message 
+    // Optional property: Receiver for direct message 
     socket.on('send_msg', (data, callback) => {
-        const response = systemHandler.handleIncomingMsg(socket.id, data);
+        console.log(socket.rooms);
+        const response = eventHandler.handleSendMsg(socket, data);
         // response ===> status: 400 || status: 200
         callback(response);
     });
