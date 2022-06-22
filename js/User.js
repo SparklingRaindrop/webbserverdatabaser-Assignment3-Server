@@ -1,12 +1,30 @@
 class User {
-    constructor(userName, id, currentRoom) {
-        this.socketId = id;
-        this.currentRoom = currentRoom;
-        // Default name
+    constructor(userName, socket) {
+        this.socket = socket;
         this.name = userName;
     }
+    leave() {
+        return (room) => {
+            socket.leave(room.getName());
+        }
+    }
+    join() {
+        return (room) => {
+            this.socket.currentRoom = room;
+            socket.join(room.getName());
+        }
+    }
+    getCurrentRoom() {
+        return this.currentRoom;
+    }
+    getSocketId() {
+        return this.socket.id;
+    }
     getState() {
-        return {...this}
+        return {
+            name: this.name,
+            socketId: this.socket.id
+        };
     }
 }
 
