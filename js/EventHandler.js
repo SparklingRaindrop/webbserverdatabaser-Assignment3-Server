@@ -1,26 +1,32 @@
 const Message = require("./Message");
 const Room = require("./Room");
 const User = require("./User");
+const DataHandler = require('./DataHandler');
 
 class EventHandler {
     constructor(io) {
         this.io = io;
         this.userDict = {};
-        this.roomDict = {
-            lobby: new Room({
-                name: 'lobby',
-                createdBy: { name: 'server' }
-            }),
-        };
+        this.dh = new DataHandler();
     }
 
-    handleReady(socket, userName) {
-        const newUser = new User({
-            userName,
-            socket: socket,
-            currentRoom: this.roomDict.lobby
+    async handleReady(socket, userName) {
+        const newUser = await this.dh.addNewUser({
+            id: socket.id,
+            name: userName,
+            current_room: 'lobby'
         });
-        // Add new user to the list. Key = socket ID
+        socket.join('lobby');
+        //this.userDict[socket.id] = newUser;
+
+        const roomList = await this.dh.getAllRoom();
+        socket.emit('user_initialized', {
+            user: newUser,
+            roomList: roomList
+        });
+        this.notifyAll('new_client', `${userName} has joined`);
+
+/*         // Add new user to the list. Key = socket ID
         this.userDict[socket.id] = newUser;
         // Using this in middleware
         socket.user = newUser;
@@ -34,7 +40,7 @@ class EventHandler {
             },
             roomList: this.getRoomList(),
         });
-        this.notifyAll('new_client', `${userName} has joined`);
+        this.notifyAll('new_client', `${userName} has joined`); */
         return {
             status: 200
         }
