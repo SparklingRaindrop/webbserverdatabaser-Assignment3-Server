@@ -8,19 +8,13 @@ const User = require('./js/User');
 const Room = require('./js/Room');
 const Message = require('./js/Message');
 const logHandler = require('./js/LogHandler');
+const SystemHandler = require('./js/SystemHandler');
 
 const USERNAME = 'admin';
 const PASSWORD = 'aaaa';
 
-const activeUserList = [];
-const roomList = [new Room('default', 1)];
-const status ={
-    userList: activeUserList,
-    roomList: roomList,
-}
 const app = express();
 const httpServer = createServer(app);
-
 /* const sessionMiddleware = session({
     secret: process.env.SECRET_KEY,
     saveUninitialized: true,
@@ -65,6 +59,7 @@ const options = {
 };
 
 const io = new Server(httpServer, options);
+const systemHandler = new SystemHandler(io);
 
 /* 
 function wrap(middleware) {
@@ -106,41 +101,15 @@ io.on('connection', (socket) => {
     socket.on('ready', async ({userName}) => {
         // Check if userName is not empty
         console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} set username as ${userName}.`);
-
-        const defaultRoom = roomList[0];
-        const newUser = new User(userName, socket.id, defaultRoom);
-        socket.user = newUser;
-        
-        activeUserList.push(newUser);
-        await socket.join(defaultRoom.getName());
-        defaultRoom.addMember(newUser);
-        
-        socket.emit('user_initialized', {
-            currentRoom: defaultRoom.getName(),
-            members: defaultRoom.getMembers(),
-        });
+        systemHandler.addNewUser(socket, userName);
+        systemHandler.notifyAll('new_client', `${userName} has joined`);
     });
 
     // Receiver for direct message 
-    socket.on('send_msg', (data) => {
-        const {message, receiver} = data;
-        const user = socket.user;
-        const incomingMessage = new Message({
-            content: message,
-            senderSocketId: user.socketId,
-            receiverSocketId: receiver,
-            room: user.currentRoom
-        });
-        console.log('\x1b[35m%s\x1b[0m', incomingMessage);
-
-        if (!receiver) {
-            console.log(user.currentRoom.name, user.name );
-            socket.to(user.currentRoom.name).emit('new_msg', {
-                sender: user.name,
-                message: message,
-                date: incomingMessage.timestamp
-            });
-        }
+    socket.on('send_msg', (data, callback) => {
+        const response = systemHandler.handleIncomingMsg(socket, data);
+        // response ===> status: 400 || status: 200
+        callback(response);
     });
 
     socket.on('join_room', (roomName, callback) => {
@@ -153,8 +122,8 @@ io.on('connection', (socket) => {
         if (index > -1) {
             socket.user.currentRoom = roomList[index];
         } else {
-            const newRoom = new Room(roomName, roomList.length + 1);
-            roomList.push(newRoom);
+            const newRoom = createNewRoom();
+            io.emit('notify_new_room', roomList.toObj());
             console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} created a new room "${roomName}"`);
             socket.user.currentRoom = newRoom;
         } 
