@@ -107,14 +107,13 @@ io.on('connection', (socket) => {
 
     // Optional property: Receiver for direct message 
     socket.on('send_msg', (data, callback) => {
-        console.log(socket.rooms);
         const response = eventHandler.handleSendMsg(socket, data);
         // response ===> status: 400 || status: 200
         callback(response);
     });
 
     socket.on('join_room', (roomName, callback) => {
-        const response = systemHandler.handleJoinRoom(socket.id, roomName);
+        const response = eventHandler.handleJoinRoom(socket.id, roomName);
         callback(response);
     });
 });

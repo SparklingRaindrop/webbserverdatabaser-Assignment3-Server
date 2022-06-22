@@ -11,7 +11,7 @@ class Room {
         this.messages.push(msg);
     }
     getMembers() {
-        return this.members.map(member => member. getState());
+        return this.members.map(member => member.getState());
     }
     addMember(user) {
         this.members.push(user);
@@ -23,7 +23,9 @@ class Room {
         return {
             name: this.name,
             members: this.getMembers(),
-            createdBy: this.createdBy,
+            createdBy: this.createdBy.name !== 'server' ?
+                this.createdBy.getState() :
+                this.createdBy,
         }
     }
 }

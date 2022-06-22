@@ -71,6 +71,31 @@ class EventHandler {
         return {status: 200};
     }
 
+    handleJoinRoom(socketId, roomName) {
+        const targetUser = this.userDict[socketId];
+        const oldRoom = this.getCurrentRoomByUserId(targetUser.getSocketId());
+
+        // When the room already exists.
+        if (this.roomDict.hasOwnProperty(roomName)) {
+            this.roomDict[roomName].addMember(this.userDict[socketId]);
+            console.log('\x1b[34m%s\x1b[0m', `ID: ${socketId} entered the room "${roomName}"`);
+        } else {
+            const newRoom = this.createNewRoom(roomName, targetUser);
+            newRoom.addMember(targetUser);
+            oldRoom.removeMember(targetUser);
+            this.notifyAll('notify_new_room', {
+                newRoomList: this.getRoomList(),
+            });
+            console.log('\x1b[34m%s\x1b[0m', `ID: ${socketId} created a new room "${roomName}"`);
+        }
+
+        targetUser.leave(targetUser.getCurrentRoom());
+        targetUser.join(this.roomDict[roomName]);
+        return {
+            status: 200,
+        }
+    }
+
     getUserState(id) {
         const currentRoom = this.getCurrentRoomByUserId(id).toObj();
         return {
@@ -109,31 +134,6 @@ class EventHandler {
         const roomList = Object.keys(this.roomDict);
         const result = roomList.map(room => this.roomDict[room].toObj());
         return result;
-    }
-
-    
-
-    handleJoinRoom(socketId, roomName) {
-        const targetUser = this.userDict[socketId];
-        const oldRoom = this.getCurrentRoomByUserId(targetUser.getSocketId());
-        if (this.roomDict.hasOwnProperty(roomName)) {
-            this.roomDict[roomName].addMember(this.userDict[socketId]);
-            console.log('\x1b[34m%s\x1b[0m', `ID: ${socketId} entered the room "${roomName}"`);
-        } else {
-            const newRoom = this.createNewRoom(roomName, targetUser);
-            newRoom.addMember(targetUser);
-            oldRoom.removeMember(targetUser);
-            this.notifyAll('notify_new_room', {
-                roomList: this.getRoomList(),
-            });
-            console.log('\x1b[34m%s\x1b[0m', `ID: ${socketId} created a new room "${roomName}"`);
-        }
-
-        targetUser.leave(targetUser.getCurrentRoom());
-        targetUser.join(this.roomDict[roomName]); 
-        return {
-            status: 200,
-        }
     }
 
     handleDisconnect(id) {
