@@ -1,13 +1,13 @@
 class Message {
-    constructor({content, senderSocketId, room, receiverSocketId}) {
+    constructor({content, sender, receiver}) {
         this.content = content;
-        this.senderSocketId = senderSocketId;
-        this.room = room;
-        this.receiverSocketId = receiverSocketId;
+        this.sender = sender; // User
+        this.receiver = receiver; // User
         this.timestamp = new Date();
     }
-
-    
+    toObj() {
+        return {...this}
+    }
 }
 
 module.exports = Message;

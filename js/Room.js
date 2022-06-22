@@ -1,7 +1,6 @@
 class Room {
-    constructor(name, id) {
+    constructor(name) {
         this.name = name;
-        this.id = id;
         this.members = [];
     }
     getName() {
@@ -15,6 +14,9 @@ class Room {
     }
     addMember(user) {
         this.members.push(user);
+    }
+    toObj() {
+        return {...this}
     }
 }
 
