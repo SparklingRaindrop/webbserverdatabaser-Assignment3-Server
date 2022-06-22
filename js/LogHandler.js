@@ -12,12 +12,17 @@ function logHandler(socket, next) {
         switch(event) {
             case 'send_msg':
                 const { message, receiver } = data;
-                content = `"${message}" to ${receiver ? `ID: ${receiver}` : socket.user.currentRoom.name}`;
+                content = `"${message}" to ${receiver ?
+                    `ID: ${receiver}` :
+                    socket.user.currentRoom.getName()
+                }`;
                 break;
 
             case 'join_room':
                 content = data.roomName;
                 break;
+            case 'disconnect':
+                content = data;
         }
         log = `[${timeStamp}] "${event}" ${content ? `| ${content}` : ''} | by ${socket.id}\n`;
         write(log);
