@@ -4,33 +4,71 @@ const User = require("./User");
 
 class SystemHandler {
     constructor(io) {
-        this.roomList = {
-            default: new Room('default'),
+        this.roomDict = {
+            lobby: new Room({name: 'lobby'}),
         };
-        this.connectedUsers = [];
+        this.connectedUsers = {};
         this.io = io;
     }
 
     addNewUser(socket, userName) {
-        const newUser = new User(userName, socket.id, this.roomList.default);
+        const newUser = new User(userName, socket);
+        // Add new user to the list. Key = socket ID
+        this.connectedUsers[socket.id] = newUser;
+        // Using this in middleware
         socket.user = newUser;
-        socket.join('default');
-        this.connectedUsers.push(newUser);
-        socket.emit('user_initialized', newUser.getState());
+        
+        newUser.join(this.roomDict.lobby);
+        this.roomDict.lobby.addMember(newUser);
+
+        socket.emit('user_initialized', {
+            user: {
+                ...this.getUserState(newUser)
+            },
+            roomList: this.getRoomList(),
+        });
     }
 
-    createNewRoom(name) {
-        this.roomList[name] = new Room(roomName);
-        return name;
+    getUserState(user) {
+        const currentRoom = this.getCurrentRoomByUserId(user.getSocketId()).toObj();
+        return {
+            user: user.getState(),
+            current: currentRoom,
+        }
+    }
+
+    getCurrentRoomByUserId(id) {
+        let result;
+        for (const room in this.roomDict){
+            const memberList = this.roomDict[room].getMembers();
+            if(memberList.some(member => member.socketId === id)) {
+                result = this.roomDict[room];
+                break;
+            }
+        }
+        return result;
+    }
+
+    createNewRoom(name, createdBy) {
+        this.roomDict[name] = new Room({name, createdBy});
+        return this.roomDict[name];
     }
 
     notifyAll(event, data) {
         this.io.emit(event, data);
     }
-    findUserById(id) {
-        return this.connectedUsers.find(user => user.socketId === id);
+
+    getUserById(id) {
+        return this.connectedUsers[id];
     }
-    handleIncomingMsg(socket, data) {
+
+    getRoomList() {
+        const roomList = Object.keys(this.roomDict);
+        const result = roomList.map(room => this.roomDict[room].toObj());
+        return result;
+    }
+
+    handleIncomingMsg(id, data) {
         if (!data || !data.message) {
             return {
                 message: 'Your message was rejected by server because it had no content.',
@@ -39,24 +77,55 @@ class SystemHandler {
         }
 
         const { message, receiver } = data;
-        const sender = socket.user;
+        const sender = this.getUserById(id);
         const incomingMessage = new Message({
             content: message,
             sender: sender,
-            receiver: this.findUserById(receiver),
+            receiver: this.getUserById(receiver),
         });
         console.log('\x1b[35m%s\x1b[0m',
-            `ID: ${sender.socketId} has sent "${message}" ` +
-            `to ${receiver ? receiver.socketId : sender.currentRoom.name }`
+            `ID: ${sender.getSocketId()} has sent "${message}" ` +
+            `to ${receiver ? receiver.getSocketId() : sender.getCurrentRoom().getName() }`
         );
-
         if (!receiver) {
-            socket.to(sender.currentRoom.name).emit('new_msg', incomingMessage.toObj());
+            this.io.in(sender.getCurrentRoom().getName()).emit('new_msg', incomingMessage.toObj());
+            //socket.to(sender.getCurrentRoom()).emit('new_msg', incomingMessage.toObj());
+        } else {
+            socket.to(receiver.getSocketId()).emit('new_msg', incomingMessage.toObj());
         }
-
+        
         return {status: 200};
     }
 
+    handleJoinRoom(socketId, roomName) {
+        const targetUser = this.connectedUsers[socketId];
+        const oldRoom = this.getCurrentRoomByUserId(targetUser.getSocketId());
+        if (this.roomDict.hasOwnProperty(roomName)) {
+            this.roomDict[roomName].addMember(this.connectedUsers[socketId]);
+            console.log('\x1b[34m%s\x1b[0m', `ID: ${socketId} entered the room "${roomName}"`);
+        } else {
+            const newRoom = this.createNewRoom(roomName, targetUser);
+            newRoom.addMember(targetUser);
+            oldRoom.removeMember(targetUser);
+            this.notifyAll('notify_new_room', {
+                roomList: this.getRoomList(),
+            });
+            console.log('\x1b[34m%s\x1b[0m', `ID: ${socketId} created a new room "${roomName}"`);
+        }
+
+        targetUser.leave(targetUser.getCurrentRoom());
+        targetUser.join(this.roomDict[roomName]); 
+        return {
+            status: 200,
+        }
+    }
+
+    handleDisconnect(id) {
+        // Remove from room
+        this.getCurrentRoomByUserId(id).removeMember(this.connectedUsers[id]);
+        // Remove user from the list
+        delete this.connectedUsers[id];
+    }
 }
 
 module.exports = SystemHandler;

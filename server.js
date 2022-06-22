@@ -4,9 +4,6 @@ const session = require('express-session');
 const cors = require('cors');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
-const User = require('./js/User');
-const Room = require('./js/Room');
-const Message = require('./js/Message');
 const logHandler = require('./js/LogHandler');
 const SystemHandler = require('./js/SystemHandler');
 
@@ -98,6 +95,9 @@ io.use((socket, next) => {
 io.use(logHandler);
 
 io.on('connection', (socket) => {
+    // list of all the sockets Array.from(io.sockets.sockets).map(socket => socket[0])
+
+
     socket.on('ready', async ({userName}) => {
         // Check if userName is not empty
         console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} set username as ${userName}.`);
@@ -107,27 +107,14 @@ io.on('connection', (socket) => {
 
     // Receiver for direct message 
     socket.on('send_msg', (data, callback) => {
-        const response = systemHandler.handleIncomingMsg(socket, data);
+        const response = systemHandler.handleIncomingMsg(socket.id, data);
         // response ===> status: 400 || status: 200
         callback(response);
     });
 
     socket.on('join_room', (roomName, callback) => {
-        socket.leave(socket.user.currentRoom.name)
-        //socket.emit('status_update', status);
-        // Check if it exists
-        socket.join(roomName);
-
-        const index = roomList.findIndex(item => item.name === roomName);
-        if (index > -1) {
-            socket.user.currentRoom = roomList[index];
-        } else {
-            const newRoom = createNewRoom();
-            io.emit('notify_new_room', roomList.toObj());
-            console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} created a new room "${roomName}"`);
-            socket.user.currentRoom = newRoom;
-        } 
-        callback(`Joined to ${roomName}`);
+        const response = systemHandler.handleJoinRoom(socket.id, roomName);
+        callback(response);
     });
 });
 
