@@ -123,7 +123,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('remove_room', (roomName, callback) => {
-        const response = eventHandler.handleRemoveRoom(socket, data);
+        const response = eventHandler.handleRemoveRoom(socket, roomName);
         callback(response);
     });
 });

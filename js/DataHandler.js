@@ -1,10 +1,15 @@
 const db = require('../config/database');
 
 class DataHandler {
-    constructor(){
-        this.createNewRoom(process.env.DEFAULT_ROOM_NAME);
+    constructor (){
+        this.init();
     }
 
+    async init() {
+        await this.refreshDB();
+        this.createNewRoom(process.env.DEFAULT_ROOM_NAME);
+    }
+    
     async createNewRoom(newRoomName) {
         const query = 
             'INSERT INTO Room (name)' +
@@ -25,6 +30,30 @@ class DataHandler {
                 db.get(`SELECT * FROM Room WHERE name = $newRoomName;`,{
                     $newRoomName: newRoomName
                 }, (error, row) => {
+                    if (error) {
+                        console.error(error.message);
+                        reject(error);
+                    }
+                    resolve(row);
+                });
+            });
+        });
+    }
+
+    async refreshDB() {
+        const query = 'DELETE FROM Room;';
+    
+        return new Promise ((resolve, reject) => {
+            db.run(query, (error) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve();
+            });
+        }).then(() =>  {
+            return new Promise(function(resolve, reject) {
+                db.get('DELETE FROM User;', (error, row) => {
                     if (error) {
                         console.error(error.message);
                         reject(error);
@@ -90,7 +119,7 @@ class DataHandler {
     
     removeUser(id) {
         return new Promise(function(resolve, reject) {
-            db.get(`Delete FROM User WHERE id = $id`, {
+            db.run(`Delete FROM User WHERE id = $id`, {
                 $id: id
             }, (error, row) => {
                 if (error) {
@@ -126,6 +155,20 @@ class DataHandler {
                 $id: id,
                 $current_room: to
             }, (error) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve();
+            });
+        });
+    }
+
+    removeRoom(roomName) {
+        return new Promise(function(resolve, reject) {
+            db.run(`Delete FROM Room WHERE name = $roomName`, {
+                $roomName: roomName
+            }, (error, row) => {
                 if (error) {
                     console.error(error.message);
                     reject(error);
