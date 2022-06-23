@@ -46,7 +46,7 @@ class EventHandler {
         }
     }
 
-    handleSendMsg(socket, data) {
+    async handleSendMsg(socket, data) {
         if (!data || !data.message) {
             return {
                 status: 400,
@@ -55,23 +55,27 @@ class EventHandler {
         }
 
         const { message, receiver } = data;
-        const sender = this.getUserById(socket.id);
-        const incomingMessage = new Message({
+        const sender = await this.dh.getUserById(socket.id);
+        const newMessage = {
+            sender,
+            receiver,
+            room_name: sender.current_room,
             content: message,
-            sender: sender,
-            receiver: this.getUserById(receiver),
-        });
+            timestamp: new Date().toString(),
+        };
+        await this.dh.addMessage(newMessage)
+
 
         console.log('\x1b[35m%s\x1b[0m',
-            `ID: ${sender.getSocketId()} has sent "${message}" ` +
-            `to ${receiver ? receiver.getSocketId() : sender.getCurrentRoom().getName() }`
+            `ID: ${sender.id} has sent "${message}" ` +
+            `to ${receiver ? receiver : sender.current_room }`
         );
 
         // Group message
         if (!receiver) {
-            socket.to(sender.getCurrentRoom().getName()).emit('new_msg', incomingMessage.toObj());
+            socket.to(sender.current_room).emit('new_msg', newMessage);
         } else {
-            this.io.to(receiver.getSocketId()).emit('new_msg', incomingMessage.toObj());
+            this.io.to(receiver.getSocketId()).emit('new_msg', newMessage);
         }
         
         return {status: 200};

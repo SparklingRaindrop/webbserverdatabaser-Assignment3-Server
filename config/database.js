@@ -8,9 +8,9 @@ const db = new sqlite3.Database('./config/db.sqlite', async (error) => {
 
     const userStatement = `
         CREATE TABLE IF NOT EXISTS User (
-            id string PRIMARY KEY,
+            id STRING PRIMARY KEY,
             name TEXT NOT NULL,
-            current_room NOT NULL,
+            current_room STRING NOT NULL,
             FOREIGN KEY (current_room) REFERENCES Room (id)
         );
     `;
@@ -25,11 +25,12 @@ const db = new sqlite3.Database('./config/db.sqlite', async (error) => {
     const messageStatement = `
     CREATE TABLE IF NOT EXISTS Message (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sender string NOT NULL,
-        receiver string,
-        room_id INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        sender STRING NOT NULL,
+        receiver STRING,
+        room_name STRING,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (room_id) REFERENCES Room (id) ON DELETE CASCADE,
+        FOREIGN KEY (room_name) REFERENCES Room (name) ON DELETE CASCADE,
         FOREIGN KEY (sender) REFERENCES User (id) ON DELETE CASCADE,
         FOREIGN KEY (receiver) REFERENCES User (id) ON DELETE CASCADE
     );
