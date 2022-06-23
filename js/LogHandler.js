@@ -8,7 +8,7 @@ function logHandler(socket, next) {
     });
 
     socket.onAny((event, data) => {
-        console.log('logwriter', event);
+        console.log('logwriter', event, data);
         let content;
         switch(event) {
             case 'send_msg':
@@ -18,12 +18,11 @@ function logHandler(socket, next) {
                     socket.rooms[1]
                 }`;
                 break;
-
             case 'join_room':
-                content = data.roomName;
+                content = `join to ${data}`;
                 break;
-            case 'disconnect':
-                content = data;
+            case 'ready':
+                content = `set username as ${data.userName}`;
         }
         log = `[${timeStamp}] "${event}" ${content ? `| ${content}` : ''} | by ${socket.id}\n`;
         write(log);
