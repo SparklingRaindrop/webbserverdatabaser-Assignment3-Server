@@ -57,7 +57,7 @@ class EventHandler {
         const { message, receiver } = data;
         const sender = await this.dh.getUserById(socket.id);
         const newMessage = {
-            sender,
+            sender: socket.id,
             receiver,
             room_name: sender.current_room,
             content: message,

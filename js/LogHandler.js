@@ -15,7 +15,7 @@ function logHandler(socket, next) {
                 const { message, receiver } = data;
                 content = `"${message}" to ${receiver ?
                     `ID: ${receiver}` :
-                    socket.user.getCurrentRoom().getName()
+                    socket.rooms[1]
                 }`;
                 break;
 
