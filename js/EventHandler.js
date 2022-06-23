@@ -81,26 +81,26 @@ class EventHandler {
         return {status: 200};
     }
 
-    handleJoinRoom(socketId, roomName) {
-        const targetUser = this.userDict[socketId];
-        const oldRoom = this.getCurrentRoomByUserId(targetUser.getSocketId());
+    async handleJoinRoom(socket, newRoomName) {
+        const targetUser = await this.dh.getUserById(socket.id);
+        const oldRoom = targetUser.current_room;
 
         // When the room already exists.
-        if (this.roomDict.hasOwnProperty(roomName)) {
-            this.roomDict[roomName].addMember(this.userDict[socketId]);
-            console.log('\x1b[34m%s\x1b[0m', `ID: ${socketId} entered the room "${roomName}"`);
-        } else {
-            const newRoom = this.createNewRoom(roomName, targetUser);
-            newRoom.addMember(targetUser);
-            oldRoom.removeMember(targetUser);
+        const roomList = await this.dh.getAllRoom();
+        if (roomList.filter(room => room.name === newRoomName).length === 0) {
+            this.dh.createNewRoom(newRoomName);
+            console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} created a new room "${newRoomName}"`);
             this.notifyAll('notify_new_room', {
-                newRoomList: this.getRoomList(),
+                roomList: await this.dh.getAllRoom(),
             });
-            console.log('\x1b[34m%s\x1b[0m', `ID: ${socketId} created a new room "${roomName}"`);
         }
-
-        targetUser.leave(targetUser.getCurrentRoom());
-        targetUser.join(this.roomDict[roomName]);
+        console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} entered the room "${newRoomName}"`);
+        await this.dh.moveRoom({
+            id: socket.id,
+            to: newRoomName
+        })
+        socket.leave(oldRoom);
+        socket.join(newRoomName);
         return {
             status: 200,
         }

@@ -22,7 +22,9 @@ class DataHandler {
             });
         }).then(() =>  {
             return new Promise(function(resolve, reject) {
-                db.get(`SELECT * FROM Room WHERE id = (SELECT MAX(id) FROM Room);`, (error, row) => {
+                db.get(`SELECT * FROM Room WHERE name = $newRoomName;`,{
+                    $newRoomName: newRoomName
+                }, (error, row) => {
                     if (error) {
                         console.error(error.message);
                         reject(error);
@@ -60,9 +62,23 @@ class DataHandler {
         });
     }
     
+    getUserById(id) {
+        return new Promise(function(resolve, reject) {
+            db.get(`SELECT * FROM User WHERE id = $id`, {
+                $id: id
+            }, (error, row) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve(row);
+            });
+        });
+    }
+
     getAllRoom() {
         return new Promise(function(resolve, reject) {
-            db.get(`SELECT * FROM Room`, (error, row) => {
+            db.all(`SELECT * FROM Room`, (error, row) => {
                 if (error) {
                     console.error(error.message);
                     reject(error);
@@ -86,6 +102,39 @@ class DataHandler {
         });
     }
 
+    addMessage(newMessage) {
+        const { parameters } = this.generateParams(newMessage);
+        const query = 
+            'INSERT INTO Message (sender, receiver, room_name, content, timestamp)' +
+            'VALUES ($sender, $receiver, $room_name, $content, $timestamp);';
+        return new Promise ((resolve, reject) => {
+            db.run(query, parameters, (error) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve();
+            });
+        });
+    }
+
+    moveRoom({id, to}) {
+        const query = 
+            'UPDATE User SET current_room = $current_room WHERE id = $id;'
+        return new Promise ((resolve, reject) => {
+            db.run(query, {
+                $id: id,
+                $current_room: to
+            }, (error) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve();
+            });
+        });
+    }
+
     generateParams(newDataObj) {
         const targets = Object.keys(newDataObj).reduce((result, key) => {
             result += `${result !== '' ? ', ' : ''}${key} = $${key}`;
@@ -104,6 +153,7 @@ class DataHandler {
         };
     }
 
+    
 }
 
 

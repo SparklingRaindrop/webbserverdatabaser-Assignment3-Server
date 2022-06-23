@@ -97,22 +97,22 @@ io.use(logHandler);
 io.on('connection', (socket) => {
     // list of all the sockets Array.from(io.sockets.sockets).map(socket => socket[0])
 
-    socket.on('ready', ({userName}, callback) => {
+    socket.on('ready', async ({userName}, callback) => {
         // Check if userName is not empty
         console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} set username as ${userName}.`);
-        const response = eventHandler.handleReady(socket, userName);
-        callback(response);
-    });
-
-    // Optional property: Receiver for direct message 
-    socket.on('send_msg', (data, callback) => {
-        const response = eventHandler.handleSendMsg(socket, data);
+        const response = await eventHandler.handleReady(socket, userName);
         // response ===> status: 400 || status: 200
         callback(response);
     });
 
-    socket.on('join_room', (roomName, callback) => {
-        const response = eventHandler.handleJoinRoom(socket.id, roomName);
+    // Optional property: Receiver for direct message 
+    socket.on('send_msg', async (data, callback) => {
+        const response = await eventHandler.handleSendMsg(socket, data);
+        callback(response);
+    });
+
+    socket.on('join_room', async (roomName, callback) => {
+        const response = await eventHandler.handleJoinRoom(socket, roomName);
         callback(response);
     });
 
