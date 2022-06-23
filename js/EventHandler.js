@@ -19,7 +19,11 @@ class EventHandler {
             user: newUser,
             roomList: roomList
         });
-        this.notifyAll('new_client', `${userName} has joined`);
+        const userList = await this.dh.getAllUsers();
+        this.notifyAll('new_client', {
+            users: userList,
+            message: `${socket.id} has joined`,
+        });
         return {
             status: 200
         }
@@ -57,7 +61,7 @@ class EventHandler {
         if (!receiver) {
             socket.to(sender.current_room).emit('new_msg', newMessage);
         } else {
-            this.io.to(receiver.getSocketId()).emit('new_msg', newMessage);
+            this.io.to(receiver).emit('new_msg', newMessage);
         }
         
         return {status: 200};
@@ -67,7 +71,7 @@ class EventHandler {
         const roomList = await this.dh.getAllRoom();
         if (roomList.filter(room => room.name === roomName).length === 0) {
             this.dh.createNewRoom(roomName);
-            console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} created a new room "${newRoomName}"`);
+            console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} created a new room "${roomName}"`);
             this.notifyAll('notify_new_room', {
                 roomList: await this.dh.getAllRoom(),
             });
@@ -111,7 +115,7 @@ class EventHandler {
         await this.dh.removeUser(id);
     }
 
-    handleRemoveRoom(socket, roomName) {
+    async handleRemoveRoom(socket, roomName) {
         const roomList = await this.dh.getAllRoom();
         if (roomList.filter(room => room.name === roomName).length === 0) {
             return {

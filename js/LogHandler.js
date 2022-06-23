@@ -8,23 +8,29 @@ function logHandler(socket, next) {
     });
 
     socket.onAny((event, data) => {
-        console.log('logwriter', event, data);
+        console.log('logwriter', event, data, Array.from(socket.rooms));
         let content;
         switch(event) {
             case 'send_msg':
                 const { message, receiver } = data;
                 content = `"${message}" to ${receiver ?
                     `ID: ${receiver}` :
-                    socket.rooms[1]
+                    Array.from(socket.rooms)[1]
                 }`;
                 break;
             case 'join_room':
-                content = `join to ${data}`;
+                content = `joined to "${data}"`;
+                break;
+            case 'create_room':
+                content = `created a room "${data}"`;
+                break;
+            case 'remove_room':
+                content = `removed a room "${data}"`;
                 break;
             case 'ready':
-                content = `set username as ${data.userName}`;
+                content = `set username as "${data.userName}"`;
         }
-        log = `[${timeStamp}] "${event}" ${content ? `| ${content}` : ''} | by ${socket.id}\n`;
+        log = `[${timeStamp}] "${event}" ${content ? `| ${content}` : ''} | by "${socket.id}"\n`;
         write(log);
     });
     next();

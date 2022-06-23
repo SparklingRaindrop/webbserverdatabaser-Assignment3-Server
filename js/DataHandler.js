@@ -53,7 +53,7 @@ class DataHandler {
             });
         }).then(() =>  {
             return new Promise(function(resolve, reject) {
-                db.get('DELETE FROM User;', (error, row) => {
+                db.run('DELETE FROM User;', (error, row) => {
                     if (error) {
                         console.error(error.message);
                         reject(error);
@@ -108,6 +108,18 @@ class DataHandler {
     getAllRoom() {
         return new Promise(function(resolve, reject) {
             db.all(`SELECT * FROM Room`, (error, row) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve(row);
+            });
+        });
+    }
+
+    getAllUsers() {
+        return new Promise(function(resolve, reject) {
+            db.all(`SELECT * FROM User`, (error, row) => {
                 if (error) {
                     console.error(error.message);
                     reject(error);
