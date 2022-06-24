@@ -14,7 +14,7 @@ class EventHandler {
             current_room: 'lobby'
         });
         this.handleJoinRoom(socket, 'lobby');
-        const roomList = await this.dh.getAllRoom();
+        const roomList = await this.getRoomList();
         socket.emit('user_initialized', {
             user: newUser,
             roomList: roomList
@@ -40,17 +40,18 @@ class EventHandler {
         const { message, receiver } = data;
         const sender = await this.dh.getUserById(socket.id);
         const newMessage = {
-            sender: {
-                id: socket.id,
-                userName: sender.name
-            },
+            sender: socket.id,
+            sender_name: sender.name,
             receiver,
             room_name: sender.current_room,
             content: message,
             timestamp: new Date().toString(),
         };
         await this.dh.addMessage(newMessage)
-
+            .catch(() => ({
+                    status: 500,
+                    message: 'Something went wrong on the server.',
+            }));
 
         console.log('\x1b[35m%s\x1b[0m',
             `ID: ${sender.id} has sent "${message}" ` +
@@ -70,10 +71,11 @@ class EventHandler {
     async handleCreateRoom(socket, roomName) {
         const roomList = await this.dh.getAllRoom();
         if (roomList.filter(room => room.name === roomName).length === 0) {
-            this.dh.createNewRoom(roomName);
+            await this.dh.createNewRoom(roomName);
             console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} created a new room "${roomName}"`);
-            this.notifyAll('notify_new_room', {
-                roomList: await this.dh.getAllRoom(),
+            const roomList = await this.getRoomList();
+            this.notifyAll('update_room_list', {
+                roomList: roomList,
             });
             return {
                 status: 200,
@@ -116,6 +118,18 @@ class EventHandler {
     }
 
     async handleRemoveRoom(socket, roomName) {
+        if (roomName === 'lobby') {
+            return  {
+                status: 400,
+                message: `Lobby can not be deleted.`
+            }
+        }
+        if (roomName === '') {
+            return  {
+                status: 400,
+                message: `Please provide a room name.`
+            }
+        }
         const roomList = await this.dh.getAllRoom();
         if (roomList.filter(room => room.name === roomName).length === 0) {
             return {
@@ -123,15 +137,37 @@ class EventHandler {
                 message: `Cannot find room with the name, ${roomName}`
             }
         }
+        const members = await this.dh.getMembersByRoomName(roomName)
+        const isEmpty = members.length === 0;
+        if (!isEmpty) {
+            return {
+                status: 400,
+                message: `Cannot delete room, ${roomName} when there are is somebody.`
+            }
+        }
         this.dh.removeRoom(roomName);
-        console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} deleted a room "${newRoomName}"`);
-        this.notifyAll('notify_new_room', {
-            roomList: await this.dh.getAllRoom(),
+        console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} deleted a room "${roomName}"`);
+        this.notifyAll('update_room_list', {
+            roomList: await this.getRoomList(),
         });
         return {
             status: 200,
             message: `${roomName} exists. Pick another name`
         }
+    }
+
+    async getRoomList() {
+        const rooms = await this.dh.getAllRoom();
+        const result = await Promise.all(
+            rooms.map(async room => {
+                const members = await this.dh.getMembersByRoomName(room.name)
+                return {
+                roomName: room.name,
+                members: members.length === 0 ? [] : members
+                }
+            })
+        );
+        return result;
     }
 
     notifyAll(event, data) {

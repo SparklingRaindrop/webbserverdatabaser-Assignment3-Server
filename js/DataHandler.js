@@ -128,6 +128,20 @@ class DataHandler {
             });
         });
     }
+
+    getMembersByRoomName(roomName) {
+        return new Promise(function(resolve, reject) {
+            db.all(`SELECT * FROM User WHERE current_room = $roomName`,{
+                $roomName: roomName
+            }, (error, row) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve(row);
+            });
+        });
+    }
     
     removeUser(id) {
         return new Promise(function(resolve, reject) {
@@ -146,8 +160,8 @@ class DataHandler {
     addMessage(newMessage) {
         const { parameters } = this.generateParams(newMessage);
         const query = 
-            'INSERT INTO Message (sender, receiver, room_name, content, timestamp)' +
-            'VALUES ($sender, $receiver, $room_name, $content, $timestamp);';
+            'INSERT INTO Message (sender, sender_name, receiver, room_name, content, timestamp)' +
+            'VALUES ($sender, $sender_name $receiver, $room_name, $content, $timestamp);';
         return new Promise ((resolve, reject) => {
             db.run(query, parameters, (error) => {
                 if (error) {

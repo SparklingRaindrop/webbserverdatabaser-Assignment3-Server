@@ -50,7 +50,7 @@ app.use(sessionMiddleware); */
 
 const options = {
     cors: {
-        origin: 'http://localhost:3000',
+        origin: ['http://localhost:3000/chat', 'http://localhost:3000'],
         method: ['GET', 'POST']
     }
 };
