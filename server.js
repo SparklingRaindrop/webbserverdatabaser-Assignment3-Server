@@ -4,7 +4,7 @@ const session = require('express-session');
 const cors = require('cors');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
-const logHandler = require('./js/LogHandler');
+const {logHandler} = require('./js/LogHandler');
 const EventHandler = require('./js/EventHandler');
 
 const USERNAME = 'admin';
@@ -115,8 +115,8 @@ io.on('connection', (socket) => {
         callback(response);
     });
 
-    socket.on('create_room', async (roomName, callback) => {
-        const response = await eventHandler.handleCreateRoom(socket, roomName);
+    socket.on('create_room', async (newRoom, callback) => {
+        const response = await eventHandler.handleCreateRoom(socket, newRoom);
         callback(response);
     });
 
@@ -130,6 +130,16 @@ io.on('connection', (socket) => {
         const response = await eventHandler.handleRemoveRoom(socket, roomName);
         callback(response);
     });
+
+    socket.on('typing_start', async (data, callback) => {
+        const response = await eventHandler.handleTypingStart(socket, data);
+        callback(response);
+    });
+
+    socket.on('typing_stop', async (data, callback) => {
+        const response = await eventHandler.handleTypingStop(socket, data);
+        callback(response);
+    })
 });
 
 httpServer.listen(process.env.PORT);

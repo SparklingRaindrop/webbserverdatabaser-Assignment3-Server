@@ -1,11 +1,7 @@
 const fs = require('fs/promises');
 
 function logHandler(socket, next) {
-    const timeStamp = new Date().toLocaleString('en-GB', {
-        dateStyle: 'medium',
-        timeStyle: 'medium',
-        timeZone: 'CET',
-    });
+    const timeStamp = generateTimestamp();
 
     socket.onAny((event, data) => {
         console.log('logwriter', event, data, Array.from(socket.rooms));
@@ -36,6 +32,14 @@ function logHandler(socket, next) {
     next();
 }
 
+function generateTimestamp() {
+    return new Date().toLocaleString('en-GB', {
+        dateStyle: 'medium',
+        timeStyle: 'medium',
+        timeZone: 'CET',
+    });
+}
+
 function write(data) {
     try {
         fs.writeFile('system.log', data, {flag: 'a'});
@@ -45,4 +49,8 @@ function write(data) {
 }
 
 
-module.exports = logHandler;
+module.exports = {
+    logHandler,
+    write,
+    generateTimestamp,
+}

@@ -1,4 +1,9 @@
+const md5 = require('md5');
 const DataHandler = require('./DataHandler');
+const {
+    write,
+    generateTimestamp
+} = require('./LogHandler');
 
 class EventHandler {
     constructor(io) {
@@ -8,17 +13,40 @@ class EventHandler {
     }
 
     async handleReady(socket, userName) {
+        const lobbyId = await this.dh.getRoomIdByRoomName('lobby');
+        const allMembers = await this.dh.getAllUsers();
+        const userNameDuplicates = allMembers.filter(member => member.name === userName).length > 0;
+        if (userNameDuplicates) {
+            return {
+                status: 500,
+                message: `"${userName}" already exists on the database. Choose another name.`,
+            };
+        }
+
         const newUser = await this.dh.addNewUser({
             id: socket.id,
             name: userName,
-            current_room: 'lobby'
+            current_room_id: lobbyId.id
+        }).catch(reason => {
+            write(`${generateTimestamp()}] "ready" ERROR OCCURRED to ${socket.id} ${reason}`);
+            return {
+                status: 500,
+                message: 'Something happened on the server.',
+            };
         });
-        this.handleJoinRoom(socket, 'lobby');
+
+        await this.handleJoinRoom(socket, {
+            name: 'lobby'
+        });
         const roomList = await this.getRoomList();
+
+        // Sending initial value to the user
         socket.emit('user_initialized', {
             user: newUser,
             roomList: roomList
         });
+
+        // Share new data with the other users
         const userList = await this.dh.getAllUsers();
         this.notifyAll('new_client', {
             users: userList,
@@ -31,6 +59,7 @@ class EventHandler {
 
     async handleSendMsg(socket, data) {
         if (!data || !data.message) {
+            write(`${generateTimestamp()}] "sendMsg" ERROR OCCURRED to ${socket.id} 'no content'`);
             return {
                 status: 400,
                 message: 'Your message was rejected by server because it had no content.',
@@ -39,11 +68,16 @@ class EventHandler {
 
         const { message, receiver } = data;
         const sender = await this.dh.getUserById(socket.id);
+        const roomId = sender.current_room_id;
+        const room = await this.dh.getRoomBy({
+            id: roomId
+        })
+
         const newMessage = {
             sender: socket.id,
             sender_name: sender.name,
             receiver,
-            room_name: sender.current_room,
+            room_id: roomId,
             content: message,
             timestamp: new Date().toString(),
         };
@@ -53,14 +87,15 @@ class EventHandler {
                     message: 'Something went wrong on the server.',
             }));
 
-        console.log('\x1b[35m%s\x1b[0m',
+        console.log(
+            '\x1b[35m%s\x1b[0m',
             `ID: ${sender.id} has sent "${message}" ` +
-            `to ${receiver ? receiver : sender.current_room }`
+            `to ${receiver ? receiver : `the room "${room.name}" ID:[${sender.current_room_id}]` }`
         );
 
         // Group message
         if (!receiver) {
-            socket.to(sender.current_room).emit('new_msg', newMessage);
+            socket.to(room.name).emit('new_msg', newMessage);
         } else {
             this.io.to(receiver).emit('new_msg', newMessage);
         }
@@ -68,15 +103,26 @@ class EventHandler {
         return {status: 200};
     }
 
-    async handleCreateRoom(socket, roomName) {
+    /* 
+        newRoom = {
+            name: string
+            password: string / undefined
+        }
+    */
+    async handleCreateRoom(socket, newRoom) {
+        const roomName = newRoom.name;
+        const password = newRoom.password;
+
         const roomList = await this.dh.getAllRoom();
         if (roomList.filter(room => room.name === roomName).length === 0) {
-            await this.dh.createNewRoom(roomName);
+            if(password !== '') {
+                newRoom.password = md5(newRoom.password); // CHECK VALID PASSWORD
+            }
+            await this.dh.createNewRoom(newRoom);
             console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} created a new room "${roomName}"`);
             const roomList = await this.getRoomList();
-            this.notifyAll('update_room_list', {
-                roomList: roomList,
-            });
+            this.notifyAll('room_created', roomName);
+            this.notifyAll('update_room_list', roomList);
             return {
                 status: 200,
             }
@@ -88,26 +134,54 @@ class EventHandler {
         }
     }
 
-    async handleJoinRoom(socket, newRoomName) {
+    /* 
+        newRoomObj = {
+            name: string
+            password: string / undefined
+        }
+    */
+    async handleJoinRoom(socket, newRoomObj) {
         const targetUser = await this.dh.getUserById(socket.id);
-        const oldRoom = targetUser.current_room;
+        const oldRoom = await this.dh.getRoomBy({id: targetUser.current_room_id});
+        const newRoom = await this.dh.getRoomBy({name: newRoomObj.name});
 
-        // When the room already exists.
-        const roomList = await this.dh.getAllRoom();
-        if (roomList.filter(room => room.name === newRoomName).length === 0) {
+        if (!newRoom) {
             return {
-                status: 400,
-                message: `Room ${newRoomName} doesn't exist.`
+                status: 404,
+                message: `Room ${newRoomObj.name} doesn't exist.`
             }
         }
-        console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} entered the room "${newRoomName}"`);
+        
+        if (newRoom.password) {
+            if (!newRoomObj.password) {
+                return {
+                    status: 403,
+                    message: `Please provide password to enter this room.`
+                }
+            }
+
+            const hashedPassword = md5(newRoomObj.password);
+            if (newRoom.password !== hashedPassword) {
+                return {
+                    status: 403,
+                    message: `Incorrect password.`
+                }
+            }
+        }
+        
         await this.dh.moveRoom({
             id: socket.id,
-            to: newRoomName
-        })
-        socket.leave(oldRoom);
-        socket.join(newRoomName);
-        this.io.to(newRoomName).emit('room_new_member', targetUser);
+            newRoomId: newRoom.id
+        });
+        console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} entered the room "${newRoom.name}"`);
+
+        socket.leave(oldRoom.name);
+        socket.join(newRoom.name);
+
+        const newTargetUser = await this.dh.getUserById(socket.id);
+        const newRoomList = await this.getRoomList();
+        this.notifyAll('update_room_list', newRoomList);
+        socket.to(newRoom.name).emit('room_new_member', newTargetUser);
         return {
             status: 200,
         }
@@ -117,52 +191,109 @@ class EventHandler {
         await this.dh.removeUser(id);
     }
 
-    async handleRemoveRoom(socket, roomName) {
-        if (roomName === 'lobby') {
+    /* 
+        target = {
+            name: string
+            password: string / undefined
+        }
+    */
+    async handleRemoveRoom(socket, target) {
+        if (target.name === 'lobby') {
             return  {
                 status: 400,
                 message: `Lobby can not be deleted.`
             }
         }
-        if (roomName === '') {
+        if (target.name === '') {
             return  {
                 status: 400,
                 message: `Please provide a room name.`
             }
         }
-        const roomList = await this.dh.getAllRoom();
-        if (roomList.filter(room => room.name === roomName).length === 0) {
+
+        const targetRoom = await this.dh.getRoomBy({
+            name: target.name
+        });
+        if (!targetRoom) {
             return {
                 status: 400,
-                message: `Cannot find room with the name, ${roomName}`
+                message: `Cannot find room with the name, ${target.name}`
             }
         }
-        const members = await this.dh.getMembersByRoomName(roomName)
+
+        const members = await this.dh.getMembersByRoomName(target.name)
         const isEmpty = members.length === 0;
         if (!isEmpty) {
             return {
                 status: 400,
-                message: `Cannot delete room, ${roomName} when there are is somebody.`
+                message: `Cannot delete room when the room isn't empty.`
             }
         }
-        this.dh.removeRoom(roomName);
-        console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} deleted a room "${roomName}"`);
-        this.notifyAll('update_room_list', {
-            roomList: await this.getRoomList(),
-        });
+
+        if (targetRoom.password !== null && target.password === '') {
+            return {
+                status: 403,
+                message: `Password is missing.`
+            }
+        }
+
+        if (targetRoom.password !== null) {
+            const hashedPassword = md5(target.password);
+            if (targetRoom.password !== hashedPassword) {
+                return {
+                    status: 403,
+                    message: `Incorrect password.`
+                }
+            }
+        }
+
+        this.dh.removeRoom(target.name);
+        console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} deleted a room "${target.name}"`);
+
+        const newRoomList = await this.getRoomList()
+        this.notifyAll('room_deleted', target.name);
+        this.notifyAll('update_room_list', newRoomList);
         return {
             status: 200,
-            message: `${roomName} exists. Pick another name`
+            message: `${target.name} has removed.`
         }
+    }
+
+    /* 
+        data = {
+            room_name: current_room,
+            receiver: undefined, // TODO
+        }
+    */
+    async handleTypingStart(socket, data) {
+        const typingBy = await this.dh.getUserById(socket.id);
+        if (data.receiver) {
+            socket.to(data.receiver).emit('user_typing_start', typingBy);
+            return {
+                status : 200
+            }
+        }
+        socket.to(data.room_name).emit('user_typing_start', typingBy);
+    }
+
+    async handleTypingStop(socket, data) {
+        if (data.receiver) {
+            socket.to(data.receiver).emit('user_typing_stop');
+            return {
+                status : 200
+            }
+        }
+        socket.to(data.room_name).emit('user_typing_stop');
     }
 
     async getRoomList() {
         const rooms = await this.dh.getAllRoom();
         const result = await Promise.all(
             rooms.map(async room => {
-                const members = await this.dh.getMembersByRoomName(room.name)
+                const members = await this.dh.getMembersByRoomID(room.id)
                 return {
                 roomName: room.name,
+                password: room.password === 1 ? true : false,
                 members: members.length === 0 ? [] : members
                 }
             })
