@@ -57,8 +57,14 @@ class EventHandler {
         }
     }
 
+    /* 
+        data = {
+            content: string,
+            receiver: socket.id / string
+        }
+    */
     async handleSendMsg(socket, data) {
-        if (!data || !data.message) {
+        if (!data || !data.content) {
             write(`${generateTimestamp()}] "sendMsg" ERROR OCCURRED to ${socket.id} 'no content'`);
             return {
                 status: 400,
@@ -66,21 +72,21 @@ class EventHandler {
             };
         }
 
-        const { message, receiver } = data;
+        const { content, receiver } = data;
         const sender = await this.dh.getUserById(socket.id);
-        const roomId = sender.current_room_id;
-        const room = await this.dh.getRoomBy({
-            id: roomId
-        })
-
+        const receiverData = await this.dh.getUserById(receiver);
         const newMessage = {
             sender: socket.id,
             sender_name: sender.name,
-            receiver,
-            room_id: roomId,
-            content: message,
+            receiver: receiverData,
+            content: content,
             timestamp: new Date().toString(),
         };
+
+        // When receiver is not provided, it's sent to the room
+        if (!receiver) {
+            newMessage.room_id = sender.current_room_id;
+        }
         await this.dh.addMessage(newMessage)
             .catch(() => ({
                     status: 500,
@@ -89,12 +95,15 @@ class EventHandler {
 
         console.log(
             '\x1b[35m%s\x1b[0m',
-            `ID: ${sender.id} has sent "${message}" ` +
-            `to ${receiver ? receiver : `the room "${room.name}" ID:[${sender.current_room_id}]` }`
+            `ID: ${sender.id} has sent "${content}" ` +
+            `to ${receiver ? receiver : `the room ID:[${sender.current_room_id}]` }`
         );
 
         // Group message
         if (!receiver) {
+            const room = await this.dh.getRoomBy({
+                id: sender.current_room_id
+            });
             socket.to(room.name).emit('new_msg', newMessage);
         } else {
             this.io.to(receiver).emit('new_msg', newMessage);
@@ -261,19 +270,25 @@ class EventHandler {
 
     /* 
         data = {
-            room_name: current_room,
-            receiver: undefined, // TODO
+            room_name: current_room or undefined,
+            receiver: id or undefined,
         }
     */
     async handleTypingStart(socket, data) {
         const typingBy = await this.dh.getUserById(socket.id);
-        if (data.receiver) {
-            socket.to(data.receiver).emit('user_typing_start', typingBy);
+
+        const notification = {
+            typingBy,
+            ...data,
+        };
+
+        if (data.hasOwnProperty('receiver')) {
+            socket.to(data.receiver).emit('user_typing_start', notification);
             return {
                 status : 200
             }
         }
-        socket.to(data.room_name).emit('user_typing_start', typingBy);
+        socket.to(data.room_name).emit('user_typing_start', notification);
     }
 
     async handleTypingStop(socket, data) {
