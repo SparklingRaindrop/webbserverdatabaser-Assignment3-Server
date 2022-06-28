@@ -6,28 +6,32 @@ function logHandler(socket, next) {
     socket.onAny((event, data) => {
         let body;
         
+        if (event === 'msg:send') {
+            const { content, receiver } = data;
+            body = `"${content}" to ${receiver ?
+                `ID: ${receiver}` :
+                Array.from(socket.rooms)[1]
+            }`;
+            write(body, socket.id, {message: true});
+            return;
+        }
+
         switch(event) {
-            case 'msg:send':
-                const { content, receiver } = data;
-                body = `"${content}" to ${receiver ?
-                    `ID: ${receiver}` :
-                    Array.from(socket.rooms)[1]
-                }`;
-                break;
             case 'user:join_room':
-                body = `joined to "${data}"`;
+                body = `joined to "${data.name}"`;
                 break;
             case 'room:create':
-                body = `created a room "${data}"`;
+                body = `created a room "${data.name}" ` +
+                    `${data.password ? 'with' : 'without'} password`;
                 break;
             case 'room:delete':
-                body = `removed a room "${data}"`;
+                body = `deleted a room "${data.name}"`;
                 break;
             case 'user:ready':
                 body = `set username as "${data.userName}"`;
                 
         }
-        const log = `[${timeStamp}] "${event}" ${body ? `| ${body}` : ''} | by "${socket.id}"\n`;
+        const log = `[${timeStamp}] "${event}" ${body ? `| ${body}` : ''} | By "${socket.id}"\n`;
         write(log);
     });
     next();
@@ -43,14 +47,22 @@ function generateTimestamp() {
 
 function write(data, id, type) {
     let isError;
+    let isMessage;
     if (type) {
-        isError = type.error;
+        if (type.error) {
+            isError = type.error;
+        } else if (type.message) {
+            isMessage = type.message;
+        }
     }
 
     try {
         if (isError) {
-            const log = `[${generateTimestamp()}] | ${data} | ${id}\n`;
+            const log = `[${generateTimestamp()}] | ${data} | ID: ${id}\n`;
             fs.writeFile('error.log', log, {flag: 'a'});
+        } else if (isMessage) {
+            const log = `[${generateTimestamp()}] | ${data} | By ${id}\n`;
+            fs.writeFile('message.log', log, {flag: 'a'});
         } else {
             fs.writeFile('system.log', data, {flag: 'a'});
         }

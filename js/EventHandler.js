@@ -371,7 +371,7 @@ class EventHandler {
             password: string / undefined
         }
     */
-    async handleRemoveRoom(socket, data) {
+    async handleDeleteRoom(socket, data) {
         if (data.name === 'lobby') {
             return  {
                 status: 400,

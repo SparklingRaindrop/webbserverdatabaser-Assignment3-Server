@@ -134,7 +134,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('room:delete', async (roomName, callback) => {
-        const response = await eventHandler.handleRemoveRoom(socket, roomName);
+        const response = await eventHandler.handleDeleteRoom(socket, roomName);
         callback(response);
     });
 
