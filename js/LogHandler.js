@@ -7,23 +7,23 @@ function logHandler(socket, next) {
         let body;
         
         switch(event) {
-            case 'send_msg':
+            case 'msg:send':
                 const { content, receiver } = data;
                 body = `"${content}" to ${receiver ?
                     `ID: ${receiver}` :
                     Array.from(socket.rooms)[1]
                 }`;
                 break;
-            case 'join_room':
+            case 'user:join_room':
                 body = `joined to "${data}"`;
                 break;
-            case 'create_room':
+            case 'room:create':
                 body = `created a room "${data}"`;
                 break;
-            case 'remove_room':
+            case 'room:delete':
                 body = `removed a room "${data}"`;
                 break;
-            case 'ready':
+            case 'user:ready':
                 body = `set username as "${data.userName}"`;
                 
         }

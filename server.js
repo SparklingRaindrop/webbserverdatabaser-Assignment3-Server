@@ -101,8 +101,15 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
+    
+    socket.on('disconnect', (reason) => {
+        if (reason === 'transport close') {
+            eventHandler.handleTransportClose(socket.id);
+        }
+    });
+
     // list of all the sockets Array.from(io.sockets.sockets).map(socket => socket[0])
-    socket.on('ready', async ({userName}, callback) => {
+    socket.on('user:ready', async ({userName}, callback) => {
         // Check if userName is not empty
         console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} set username as ${userName}.`);
         const response = await eventHandler.handleReady(socket, userName);
@@ -111,41 +118,35 @@ io.on('connection', (socket) => {
     });
 
     // Optional property: Receiver for direct message 
-    socket.on('send_msg', async (data, callback) => {
+    socket.on('msg:send', async (data, callback) => {
         const response = await eventHandler.handleSendMsg(socket, data);
         callback(response);
     });
 
-    socket.on('join_room', async (roomName, callback) => {
+    socket.on('user:join_room', async (roomName, callback) => {
         const response = await eventHandler.handleJoinRoom(socket, roomName);
         callback(response);
     });
 
-    socket.on('create_room', async (newRoom, callback) => {
+    socket.on('room:create', async (newRoom, callback) => {
         const response = await eventHandler.handleCreateRoom(socket, newRoom);
         callback(response);
     });
 
-    socket.on('disconnect', (reason) => {
-        if (reason === 'transport close') {
-            eventHandler.handleTransportClose(socket.id);
-        }
-    });
-
-    socket.on('remove_room', async (roomName, callback) => {
+    socket.on('room:delete', async (roomName, callback) => {
         const response = await eventHandler.handleRemoveRoom(socket, roomName);
         callback(response);
     });
 
-    socket.on('typing_start', async (data, callback) => {
+    socket.on('user:typing_start', async (data, callback) => {
         const response = await eventHandler.handleTypingStart(socket, data);
         callback(response);
     });
 
-    socket.on('typing_stop', async (data, callback) => {
+    socket.on('user:typing_stop', async (data, callback) => {
         const response = await eventHandler.handleTypingStop(socket, data);
         callback(response);
-    })
+    });
 });
 
 httpServer.listen(process.env.PORT);

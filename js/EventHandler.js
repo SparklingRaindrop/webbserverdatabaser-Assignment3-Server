@@ -58,7 +58,7 @@ class EventHandler {
         const roomList = await this.getRoomList();
 
         // Sending initial value to the user
-        socket.emit('user_initialized', {
+        socket.emit('user:initialized', {
             user: newUser,
             roomList: roomList
         });
@@ -73,7 +73,7 @@ class EventHandler {
                 };
             });
 
-        this.notifyAll('new_client', {
+        this.notifyAll('user:new_client', {
             users: userList,
             message: `${socket.id} has joined`,
         });
@@ -171,11 +171,53 @@ class EventHandler {
                     message: 'Something happened on the server.',
                 };
             });
-        this.notifyAll('update_room_list', newRoomList);
-        socket.to(destination.name).emit('room_new_member', newTargetUser);
+        this.notifyAll('room:new_list', newRoomList);
+        socket.to(destination.name).emit('room:new_member', newTargetUser);
 
         return {
             status: 200,
+        }
+    }
+
+    /* 
+        data = {
+            room_name: current_room or undefined,
+            receiver: id or undefined,
+        }
+    */
+    async handleTypingStart(socket, data) {
+        const typingBy = await this.dh.getUserById(socket.id)
+            .catch(reason => {
+                write(reason, socket.id, {error: true});
+                return {
+                    status: 500,
+                    message: 'Something happened on the server.',
+                };
+            });
+
+        const notification = {
+            typingBy,
+            ...data,
+        };
+
+        if (data.hasOwnProperty('receiver')) {
+            socket.to(data.receiver).emit('user:typing_started', notification);
+        }
+        socket.to(data.room_name).emit('user:typing_started', notification);
+
+        return {
+            status : 200
+        }
+    }
+    
+    async handleTypingStop(socket, data) {
+        if (data.hasOwnProperty('receiver')) {
+            socket.to(data.receiver).emit('user:typing_stopped');
+        }
+        socket.to(data.room_name).emit('user:typing_stopped');
+
+        return {
+            status : 200
         }
     }
 
@@ -222,7 +264,6 @@ class EventHandler {
         const newMessage = {
             sender: socket.id,
             sender_name: sender.name,
-            receiver: receiverData.id,
             content: content,
             timestamp: new Date().toString(),
         };
@@ -230,6 +271,8 @@ class EventHandler {
         // When receiver is not provided, it's sent to the room
         if (!receiver) {
             newMessage.room_id = sender.current_room_id;
+        } else {
+            newMessage.receiver= receiverData.id;
         }
         await this.dh.addMessage(newMessage)
             .catch(reason => {
@@ -258,9 +301,9 @@ class EventHandler {
                         message: 'Something happened on the server.',
                     };
                 });
-            socket.to(room.name).emit('new_msg', newMessage);
+            socket.to(room.name).emit('msg:new', newMessage);
         } else {
-            this.io.to(receiver).emit('new_msg', newMessage);
+            this.io.to(receiver).emit('msg:new', newMessage);
         }
 
         return {status: 200};
@@ -308,8 +351,8 @@ class EventHandler {
                         message: 'Something happened on the server.',
                     };
                 });
-            this.notifyAll('room_created', roomName);
-            this.notifyAll('update_room_list', roomList);
+            this.notifyAll('room:created', roomName);
+            this.notifyAll('room:new_list', roomList);
 
             return {
                 status: 200,
@@ -411,8 +454,8 @@ class EventHandler {
                     message: 'Something happened on the server.',
                 };
             });
-        this.notifyAll('room_deleted', data.name);
-        this.notifyAll('update_room_list', newRoomList);
+        this.notifyAll('room:deleted', data.name);
+        this.notifyAll('room:new_list', newRoomList);
         return {
             status: 200,
             message: `${data.name} is removed.`
@@ -446,49 +489,6 @@ class EventHandler {
             })
         );
         return result;
-    }
-
-    /// Typing ///
-    /* 
-        data = {
-            room_name: current_room or undefined,
-            receiver: id or undefined,
-        }
-    */
-    async handleTypingStart(socket, data) {
-        const typingBy = await this.dh.getUserById(socket.id)
-            .catch(reason => {
-                write(reason, socket.id, {error: true});
-                return {
-                    status: 500,
-                    message: 'Something happened on the server.',
-                };
-            });
-
-        const notification = {
-            typingBy,
-            ...data,
-        };
-
-        if (data.hasOwnProperty('receiver')) {
-            socket.to(data.receiver).emit('user_typing_start', notification);
-        }
-        socket.to(data.room_name).emit('user_typing_start', notification);
-
-        return {
-            status : 200
-        }
-    }
-
-    async handleTypingStop(socket, data) {
-        if (data.hasOwnProperty('receiver')) {
-            socket.to(data.receiver).emit('user_typing_stop');
-        }
-        socket.to(data.room_name).emit('user_typing_stop');
-
-        return {
-            status : 200
-        }
     }
 
     /// Functions ///
