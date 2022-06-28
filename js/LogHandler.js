@@ -4,29 +4,30 @@ function logHandler(socket, next) {
     const timeStamp = generateTimestamp();
 
     socket.onAny((event, data) => {
-        console.log('logwriter', event, data, Array.from(socket.rooms));
-        let content;
+        let body;
+        
         switch(event) {
             case 'send_msg':
-                const { message, receiver } = data;
-                content = `"${message}" to ${receiver ?
+                const { content, receiver } = data;
+                body = `"${content}" to ${receiver ?
                     `ID: ${receiver}` :
                     Array.from(socket.rooms)[1]
                 }`;
                 break;
             case 'join_room':
-                content = `joined to "${data}"`;
+                body = `joined to "${data}"`;
                 break;
             case 'create_room':
-                content = `created a room "${data}"`;
+                body = `created a room "${data}"`;
                 break;
             case 'remove_room':
-                content = `removed a room "${data}"`;
+                body = `removed a room "${data}"`;
                 break;
             case 'ready':
-                content = `set username as "${data.userName}"`;
+                body = `set username as "${data.userName}"`;
+                
         }
-        log = `[${timeStamp}] "${event}" ${content ? `| ${content}` : ''} | by "${socket.id}"\n`;
+        const log = `[${timeStamp}] "${event}" ${body ? `| ${body}` : ''} | by "${socket.id}"\n`;
         write(log);
     });
     next();
@@ -40,17 +41,25 @@ function generateTimestamp() {
     });
 }
 
-function write(data) {
+function write(data, id, type) {
+    let isError;
+    if (type) {
+        isError = type.error;
+    }
+
     try {
-        fs.writeFile('system.log', data, {flag: 'a'});
+        if (isError) {
+            const log = `[${generateTimestamp()}] | ${data} | ${id}\n`;
+            fs.writeFile('error.log', log, {flag: 'a'});
+        } else {
+            fs.writeFile('system.log', data, {flag: 'a'});
+        }
     } catch (err) {
         console.error('\x1b[43m%s\x1b[0m', err);
     }
 }
 
-
 module.exports = {
     logHandler,
     write,
-    generateTimestamp,
 }

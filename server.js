@@ -93,6 +93,12 @@ io.use((socket, next) => {
 });
 
 io.use(logHandler);
+io.use((socket, next) => {
+    socket.onAny((event, data) =>{
+        console.log('onANy', event, data);
+    });
+    next();
+});
 
 io.on('connection', (socket) => {
     // list of all the sockets Array.from(io.sockets.sockets).map(socket => socket[0])

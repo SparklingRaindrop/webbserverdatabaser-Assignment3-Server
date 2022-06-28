@@ -1,7 +1,96 @@
 const db = require('../config/database');
 
 class DataHandler {
+    /* User */
+    getAllUsers() {
+        return new Promise(function(resolve, reject) {
+            db.all(`SELECT * FROM User`, (error, row) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve(row);
+            });
+        });
+    }
 
+    getUserById(id) {
+        const query = 'SELECT User.*, Room.name AS current_room FROM User ' +
+            'INNER JOIN Room ON User.current_room_id = Room.id WHERE User.id = $id'
+        return new Promise(function(resolve, reject) {
+            db.get(query, {
+                $id: id
+            }, (error, row) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve(row);
+            });
+        });
+    }
+
+    async addNewUser(newUser) {
+        const { parameters } = this.generateParams(newUser);
+        const query = 
+            'INSERT INTO User (id, name, current_room_id)' +
+            'VALUES ($id, $name, $current_room_id);';
+    
+        return new Promise ((resolve, reject) => {
+            db.run(query, parameters, (error) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve();
+            });
+        }).then(() =>  {
+            return new Promise(function(resolve, reject) {
+                db.get(`SELECT User.*, Room.name AS current_room FROM User INNER JOIN Room ON Room.id = current_room_id WHERE User.id = $id`, {$id: newUser.id}, (error, row) => {
+                    if (error) {
+                        console.error(error.message);
+                        reject(error);
+                    }
+                    resolve(row);
+                });
+            });
+        });
+    }
+
+    removeUserById(id) {
+        return new Promise(function(resolve, reject) {
+            db.run(`Delete FROM User WHERE id = $id`, {
+                $id: id
+            }, (error, row) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve(row);
+            });
+        });
+    }
+
+    moveRoom(params) {
+        const {id, newRoomId} = params;
+        const query = 
+            'UPDATE User SET current_room_id = $current_room_id WHERE id = $id;'
+
+        return new Promise ((resolve, reject) => {
+            db.run(query, {
+                $id: id,
+                $current_room_id: newRoomId
+            }, (error) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve();
+            });
+        });
+    }
+
+    /* Room */
     async createNewRoom(newRoom) {
         const {parameters} = this.generateParams(newRoom);
         const query = 
@@ -31,65 +120,12 @@ class DataHandler {
             });
         });
     }
-/* 
-    async refreshDB() {
-        const query = 'DELETE FROM Room;';
-    
-        return new Promise ((resolve, reject) => {
-            db.run(query, (error) => {
-                if (error) {
-                    console.error(error.message);
-                    reject(error);
-                }
-                resolve();
-            });
-        }).then(() =>  {
-            return new Promise(function(resolve, reject) {
-                db.run('DELETE FROM User;', (error, row) => {
-                    if (error) {
-                        console.error(error.message);
-                        reject(error);
-                    }
-                    resolve(row);
-                });
-            });
-        });
-    }
-    */ 
-    async addNewUser(newUser) {
-        const { parameters } = this.generateParams(newUser);
-        const query = 
-            'INSERT INTO User (id, name, current_room_id)' +
-            'VALUES ($id, $name, $current_room_id);';
-    
-        return new Promise ((resolve, reject) => {
-            db.run(query, parameters, (error) => {
-                if (error) {
-                    console.error(error.message);
-                    reject(error);
-                }
-                resolve();
-            });
-        }).then(() =>  {
-            return new Promise(function(resolve, reject) {
-                db.get(`SELECT User.*, Room.name AS current_room FROM User INNER JOIN Room ON Room.id = current_room_id WHERE User.id = $id`, {$id: newUser.id}, (error, row) => {
-                    if (error) {
-                        console.error(error.message);
-                        reject(error);
-                    }
-                    resolve(row);
-                });
-            });
-        });
-    }
-    
-    getUserById(id) {
-        const query = 'SELECT User.*, Room.name AS current_room FROM User ' +
-            'INNER JOIN Room ON User.current_room_id = Room.id WHERE User.id = $id'
+
+    // Pass either {id: id} or {name: name}
+    getRoomBy(params) {
+        const {targets, parameters} = this.generateParams(params);
         return new Promise(function(resolve, reject) {
-            db.get(query, {
-                $id: id
-            }, (error, row) => {
+            db.get(`SELECT * FROM Room WHERE ${targets}`, parameters, (error, row) => {
                 if (error) {
                     console.error(error.message);
                     reject(error);
@@ -113,73 +149,6 @@ class DataHandler {
         });
     }
 
-    getRoomBy(params) {
-        const {targets, parameters} = this.generateParams(params);
-        return new Promise(function(resolve, reject) {
-            db.get(`SELECT * FROM Room WHERE ${targets}`, parameters, (error, row) => {
-                if (error) {
-                    console.error(error.message);
-                    reject(error);
-                }
-                resolve(row);
-            });
-        });
-    }
-
-    getRoomIdByRoomName(roomName) {
-        return new Promise(function(resolve, reject) {
-            db.get(`SELECT id FROM Room WHERE name = $roomName`, {
-                $roomName: roomName
-            }, (error, row) => {
-                if (error) {
-                    console.error(error.message);
-                    reject(error);
-                }
-                resolve(row);
-            });
-        });
-    }
-
-    getRoomNameById(id) {
-        return new Promise(function(resolve, reject) {
-            db.get(`SELECT name FROM Room WHERE id = $id`, {
-                $id: id
-            }, (error, row) => {
-                if (error) {
-                    console.error(error.message);
-                    reject(error);
-                }
-                resolve(row);
-            });
-        });
-    }
-
-    getAllUsers() {
-        return new Promise(function(resolve, reject) {
-            db.all(`SELECT * FROM User`, (error, row) => {
-                if (error) {
-                    console.error(error.message);
-                    reject(error);
-                }
-                resolve(row);
-            });
-        });
-    }
-
-    getMembersByRoomName(roomName) {
-        return new Promise(function(resolve, reject) {
-            db.all(`SELECT * FROM User LEFT JOIN Room ON Room.id = current_room_id WHERE Room.name = $roomName`,{
-                $roomName: roomName
-            }, (error, row) => {
-                if (error) {
-                    console.error(error.message);
-                    reject(error);
-                }
-                resolve(row);
-            });
-        });
-    }
-
     getMembersByRoomID(id) {
         return new Promise(function(resolve, reject) {
             db.all(`SELECT * FROM User WHERE current_room_id = $id`,{
@@ -193,61 +162,31 @@ class DataHandler {
             });
         });
     }
-    
-    removeUser(id) {
+
+    removeRoomById(id) {
         return new Promise(function(resolve, reject) {
-            db.run(`Delete FROM User WHERE id = $id`, {
+            db.run(`Delete FROM Room WHERE id = $id`, {
                 $id: id
             }, (error, row) => {
                 if (error) {
                     console.error(error.message);
                     reject(error);
                 }
-                resolve(row);
+                resolve();
             });
         });
     }
 
+    /* Message */
     addMessage(newMessage) {
         const hasReceiver = newMessage.receiver !== undefined;
         const { parameters } = this.generateParams(newMessage);
         const query = 
             `INSERT INTO Message (sender, sender_name, room_id, content, timestamp${hasReceiver ? ', receiver' : ''}) ` +
-            `VALUES ($sender, $sender_name, $room_id, $content, $timestamp${hasReceiver ? ', receiver' : ''});`;
+            `VALUES ($sender, $sender_name, $room_id, $content, $timestamp${hasReceiver ? ', $receiver' : ''});`;
 
         return new Promise ((resolve, reject) => {
             db.run(query, parameters, (error) => {
-                if (error) {
-                    console.error(error.message);
-                    reject(error);
-                }
-                resolve();
-            });
-        });
-    }
-
-    moveRoom({id, newRoomId}) {
-        const query = 
-            'UPDATE User SET current_room_id = $current_room_id WHERE id = $id;'
-        return new Promise ((resolve, reject) => {
-            db.run(query, {
-                $id: id,
-                $current_room_id: newRoomId
-            }, (error) => {
-                if (error) {
-                    console.error(error.message);
-                    reject(error);
-                }
-                resolve();
-            });
-        });
-    }
-
-    removeRoom(roomName) {
-        return new Promise(function(resolve, reject) {
-            db.run(`Delete FROM Room WHERE name = $roomName`, {
-                $roomName: roomName
-            }, (error, row) => {
                 if (error) {
                     console.error(error.message);
                     reject(error);
@@ -278,8 +217,6 @@ class DataHandler {
             parameters
         };
     }
-
-    
 }
 
 

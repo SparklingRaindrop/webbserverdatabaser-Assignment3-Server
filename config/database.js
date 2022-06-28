@@ -50,9 +50,9 @@ const db = new sqlite3.Database('./config/db.sqlite', async (error) => {
             FOREIGN KEY (room_id)
                 REFERENCES Room (id) ON DELETE CASCADE,
             FOREIGN KEY (sender)
-                REFERENCES User (id),
+                REFERENCES User (id) ON DELETE CASCADE,
             FOREIGN KEY (receiver)
-                REFERENCES User (id)
+                REFERENCES User (id) ON DELETE CASCADE
         );
     `;
 
