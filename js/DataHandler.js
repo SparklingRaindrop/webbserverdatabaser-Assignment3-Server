@@ -90,6 +90,24 @@ class DataHandler {
         });
     }
 
+    updateUserId(newId, userName) {
+        const query = 
+            'UPDATE User SET id = $id WHERE name = $name;'
+
+        return new Promise ((resolve, reject) => {
+            db.run(query, {
+                $id: newId,
+                $name: userName,
+            }, (error) => {
+                if (error) {
+                    console.error(error.message);
+                    reject(error);
+                }
+                resolve();
+            });
+        });
+    }
+
     /* Room */
     async createNewRoom(newRoom) {
         const {parameters} = this.generateParams(newRoom);

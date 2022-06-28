@@ -228,6 +228,27 @@ class EventHandler {
             });
     }
 
+    async handleReconnect(socket, userName) {
+        if (!userName) {
+            return {
+                status: 400,
+                message: 'Expected user name.'
+            }
+        }
+
+        await this.dh.updateUserId(socket.id, userName)
+            .catch(reason => {
+                write(reason, socket.id, {error: true});
+                return {
+                    status: 500,
+                    message: 'Something happened on the server.',
+                };
+            });
+        return {
+            status: 200
+        }
+    }
+
     /// Message ///
     /* 
         data = {
@@ -243,6 +264,13 @@ class EventHandler {
                 message: 'Your message was rejected by server because it had no content.',
             };
         }
+        if (!socket.id) {
+            write('socket doesn\'t contain id.', {error: true}, socket.id);
+            return {
+                status: 400,
+                message: 'Please refresh the page.',
+            };
+        }
 
         const { content, receiver } = data;
         const sender = await this.dh.getUserById(socket.id)
@@ -253,6 +281,13 @@ class EventHandler {
                     message: 'Something happened on the server.',
                 };
             });
+        if (!sender) {
+            write('socket doesn\'t contain id.', {error: true}, socket.id);
+            return {
+                status: 400,
+                message: 'Please refresh the page.',
+            };
+        }
         const receiverData = await this.dh.getUserById(receiver)
             .catch(reason => {
                 write(reason, socket.id, {error: true});
@@ -319,6 +354,20 @@ class EventHandler {
     async handleCreateRoom(socket, newRoom) {
         const roomName = newRoom.name;
         const password = newRoom.password;
+
+        if (roomName.length > 15) {
+            return {
+                status: 400,
+                message: 'Room name must be shorter than 15 characters.',
+            };
+        }
+
+        if (!roomName.replace(/\s/g, '').length) {
+            return {
+                status: 400,
+                message: 'Room name must contain at least one character or symbol.',
+            };
+        }
 
         const roomList = await this.dh.getAllRoom()
             .catch(reason => {

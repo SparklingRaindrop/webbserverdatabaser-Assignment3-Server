@@ -93,12 +93,6 @@ io.use((socket, next) => {
 });
 
 io.use(logHandler);
-io.use((socket, next) => {
-    socket.onAny((event, data) =>{
-        console.log('onANy', event, data);
-    });
-    next();
-});
 
 io.on('connection', (socket) => {
     
@@ -106,6 +100,11 @@ io.on('connection', (socket) => {
         if (reason === 'transport close') {
             eventHandler.handleTransportClose(socket.id);
         }
+    });
+
+    socket.on('user:reconnect', async (userName, callback) => {
+        const response = await eventHandler.handleReconnect(socket, userName);
+        callback(response);
     });
 
     // list of all the sockets Array.from(io.sockets.sockets).map(socket => socket[0])
