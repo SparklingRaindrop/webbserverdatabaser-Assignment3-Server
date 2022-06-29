@@ -14,13 +14,13 @@ class DataHandler {
         });
     }
 
-    getUserById(id) {
+    getUserBy(params) {
+        const { targets, parameters } = this.generateParams(params);
         const query = 'SELECT User.*, Room.name AS current_room FROM User ' +
-            'INNER JOIN Room ON User.current_room_id = Room.id WHERE User.id = $id'
+            `INNER JOIN Room ON User.current_room_id = Room.id WHERE User.${targets}`;
+
         return new Promise(function(resolve, reject) {
-            db.get(query, {
-                $id: id
-            }, (error, row) => {
+            db.get(query, parameters, (error, row) => {
                 if (error) {
                     console.error(error.message);
                     reject(error);
@@ -33,7 +33,7 @@ class DataHandler {
     async addNewUser(newUser) {
         const { parameters } = this.generateParams(newUser);
         const query = 
-            'INSERT INTO User (id, name, current_room_id)' +
+            'INSERT INTO User (id, name, current_room_id) ' +
             'VALUES ($id, $name, $current_room_id);';
     
         return new Promise ((resolve, reject) => {
@@ -57,11 +57,12 @@ class DataHandler {
         });
     }
 
-    removeUserById(id) {
+    removeUserByName(params) {
+        const { targets, parameters } = this.generateParams(params);
+        const query = `Delete FROM User WHERE ${targets}`;
+
         return new Promise(function(resolve, reject) {
-            db.run(`Delete FROM User WHERE id = $id`, {
-                $id: id
-            }, (error, row) => {
+            db.run(query, parameters, (error, row) => {
                 if (error) {
                     console.error(error.message);
                     reject(error);

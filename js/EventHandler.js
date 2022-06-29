@@ -39,6 +39,12 @@ class EventHandler {
                 message: `"${userName}" already exists on the database. Choose another name.`,
             };
         }
+        if (!userName) {
+            return {
+                status: 400,
+                message: `Expected userName. But didn't receive it.`,
+            };
+        }
 
         const newUser = await this.dh.addNewUser({
             id: socket.id,
@@ -89,7 +95,7 @@ class EventHandler {
         }
     */
     async handleJoinRoom(socket, data) {
-        const targetUser = await this.dh.getUserById(socket.id)
+        const targetUser = await this.dh.getUserBy({id: socket.id})
             .catch(reason => {
                 write(reason, socket.id, {error: true});
                 return {
@@ -155,7 +161,7 @@ class EventHandler {
         socket.leave(origin.name);
         socket.join(destination.name);
 
-        const newTargetUser = await this.dh.getUserById(socket.id)
+        const newTargetUser = await this.dh.getUserBy({id: socket.id})
             .catch(reason => {
                 write(reason, socket.id, {error: true});
                 return {
@@ -163,14 +169,7 @@ class EventHandler {
                     message: 'Something happened on the server.',
                 };
             });
-        const newRoomList = await this.getRoomList()
-            .catch(reason => {
-                write(reason, socket.id, {error: true});
-                return {
-                    status: 500,
-                    message: 'Something happened on the server.',
-                };
-            });
+        const newRoomList = await this.getRoomList();
         this.notifyAll('room:new_list', newRoomList);
         socket.to(destination.name).emit('room:new_member', newTargetUser);
 
@@ -186,7 +185,7 @@ class EventHandler {
         }
     */
     async handleTypingStart(socket, data) {
-        const typingBy = await this.dh.getUserById(socket.id)
+        const typingBy = await this.dh.getUserBy({id: socket.id})
             .catch(reason => {
                 write(reason, socket.id, {error: true});
                 return {
@@ -202,6 +201,9 @@ class EventHandler {
 
         if (data.hasOwnProperty('receiver')) {
             socket.to(data.receiver).emit('user:typing_started', notification);
+            return {
+                status : 200
+            }
         }
         socket.to(data.room_name).emit('user:typing_started', notification);
 
@@ -221,32 +223,27 @@ class EventHandler {
         }
     }
 
-    async handleTransportClose(id) {
-        await this.dh.removeUserById(id)
+    async handleDisconnect(userName) {
+        const targetUser = await this.dh.getUserBy({name: userName});
+        await this.dh.removeUserByName(userName)
             .catch(reason => {
-                write(reason, {error: true}, id);
+                write(reason, {error: true}, targetUser.id);
             });
-    }
-
-    async handleReconnect(socket, userName) {
-        if (!userName) {
-            return {
-                status: 400,
-                message: 'Expected user name.'
-            }
-        }
-
-        await this.dh.updateUserId(socket.id, userName)
+        
+        const roomList = await this.getRoomList();
+        const allMembers = await this.dh.getAllUsers()
             .catch(reason => {
-                write(reason, socket.id, {error: true});
+                write(reason.message, {error: true}, targetUser.id);
                 return {
                     status: 500,
                     message: 'Something happened on the server.',
                 };
             });
-        return {
-            status: 200
-        }
+        this.notifyAll('user:left_chat', {
+            user: targetUser,
+            allMembers,
+            roomList
+        });
     }
 
     /// Message ///
@@ -273,7 +270,7 @@ class EventHandler {
         }
 
         const { content, receiver } = data;
-        const sender = await this.dh.getUserById(socket.id)
+        const sender = await this.dh.getUserBy({id: socket.id})
             .catch(reason => {
                 write(reason, socket.id, {error: true});
                 return {
@@ -288,7 +285,7 @@ class EventHandler {
                 message: 'Please refresh the page.',
             };
         }
-        const receiverData = await this.dh.getUserById(receiver)
+        const receiverData = await this.dh.getUserBy({id: receiver})
             .catch(reason => {
                 write(reason, socket.id, {error: true});
                 return {

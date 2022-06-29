@@ -79,38 +79,24 @@ io.use((socket, next) => {
     next();
 });
 
-io.use((socket, next) => {
-    if (socket.user) {
-        socket.emit('error', {
-            status: 400,
-            message: 'Update Browser'
-        });
-        socket.disconnect();
-    } else {
-        next();
-    }
-    
-});
-
 io.use(logHandler);
 
 io.on('connection', (socket) => {
     
     socket.on('disconnect', (reason) => {
-        if (reason === 'transport close') {
-            eventHandler.handleTransportClose(socket.id);
+        console.log('Test', reason, socket.userName, socket.id);
+        if (reason === 'transport close' || reason === 'client namespace disconnect') {
+            eventHandler.handleDisconnect(socket.userName);
         }
-    });
-
-    socket.on('user:reconnect', async (userName, callback) => {
-        const response = await eventHandler.handleReconnect(socket, userName);
-        callback(response);
     });
 
     // list of all the sockets Array.from(io.sockets.sockets).map(socket => socket[0])
     socket.on('user:ready', async ({userName}, callback) => {
         // Check if userName is not empty
         console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} set username as ${userName}.`);
+        // This is used in disconnect.
+        socket.userName = userName;
+
         const response = await eventHandler.handleReady(socket, userName);
         // response ===> status: 400 || status: 200
         callback(response);
