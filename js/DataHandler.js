@@ -17,12 +17,11 @@ class DataHandler {
     getUserBy(params) {
         const { targets, parameters } = this.generateParams(params);
         const query = 'SELECT User.*, Room.name AS current_room FROM User ' +
-            `INNER JOIN Room ON User.current_room_id = Room.id WHERE User.${targets}`;
+            `INNER JOIN Room ON User.current_room_id = Room.id WHERE User${'.' + targets}`;
 
         return new Promise(function(resolve, reject) {
             db.get(query, parameters, (error, row) => {
                 if (error) {
-                    console.error(error.message);
                     reject(error);
                 }
                 resolve(row);
@@ -57,7 +56,7 @@ class DataHandler {
         });
     }
 
-    removeUserByName(params) {
+    removeUserBy(params) {
         const { targets, parameters } = this.generateParams(params);
         const query = `Delete FROM User WHERE ${targets}`;
 

@@ -159,6 +159,10 @@ class EventHandler {
         console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} entered the room "${destination.name}"`);
 
         socket.leave(origin.name);
+        socket.to(origin.name).emit('user:left_chat_room', {
+            user: targetUser,
+        });
+        
         socket.join(destination.name);
 
         const newTargetUser = await this.dh.getUserBy({id: socket.id})
@@ -225,7 +229,7 @@ class EventHandler {
 
     async handleDisconnect(userName) {
         const targetUser = await this.dh.getUserBy({name: userName});
-        await this.dh.removeUserByName(userName)
+        await this.dh.removeUserBy({name: userName})
             .catch(reason => {
                 write(reason, {error: true}, targetUser.id);
             });
@@ -285,14 +289,7 @@ class EventHandler {
                 message: 'Please refresh the page.',
             };
         }
-        const receiverData = await this.dh.getUserBy({id: receiver})
-            .catch(reason => {
-                write(reason, socket.id, {error: true});
-                return {
-                    status: 500,
-                    message: 'Something happened on the server.',
-                };
-            });
+
         const newMessage = {
             sender: socket.id,
             sender_name: sender.name,
@@ -304,6 +301,14 @@ class EventHandler {
         if (!receiver) {
             newMessage.room_id = sender.current_room_id;
         } else {
+            const receiverData = await this.dh.getUserBy({id: receiver})
+            .catch(reason => {
+                write(reason, socket.id, {error: true});
+                return {
+                    status: 500,
+                    message: 'Something happened on the server.',
+                };
+            });
             newMessage.receiver= receiverData.id;
         }
         await this.dh.addMessage(newMessage)
@@ -538,8 +543,11 @@ class EventHandler {
     }
 
     /// Functions ///
-    notifyAll(event, data) {
-        this.io.emit(event, data);
+    async notifyAll(event, data) {
+        const allMembers = await this.dh.getAllUsers();
+        allMembers.forEach(member => {
+            this.io.to(member.id).emit(event, data);
+        });
     }
 }
 

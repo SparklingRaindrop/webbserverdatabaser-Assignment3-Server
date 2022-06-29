@@ -84,13 +84,11 @@ io.use(logHandler);
 io.on('connection', (socket) => {
     
     socket.on('disconnect', (reason) => {
-        console.log('Test', reason, socket.userName, socket.id);
         if (reason === 'transport close' || reason === 'client namespace disconnect') {
             eventHandler.handleDisconnect(socket.userName);
         }
     });
 
-    // list of all the sockets Array.from(io.sockets.sockets).map(socket => socket[0])
     socket.on('user:ready', async ({userName}, callback) => {
         // Check if userName is not empty
         console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} set username as ${userName}.`);

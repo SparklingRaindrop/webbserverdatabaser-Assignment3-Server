@@ -7,17 +7,13 @@ const db = new sqlite3.Database('./config/db.sqlite', async (error) => {
         throw error;
     }
 
-    const resetUserStatement = `
+/*     const resetUserStatement = `
         DROP TABLE IF EXISTS User;
-    `;
-
-    const resetRoomStatement = `
-        DROP TABLE IF EXISTS Room;
     `;
 
     const resetMessageStatement = `
         DROP TABLE IF EXISTS Message;
-    `;
+    `; */
     
 
     const userStatement = `
@@ -56,7 +52,7 @@ const db = new sqlite3.Database('./config/db.sqlite', async (error) => {
         );
     `;
 
-    await Promise.all([resetUserStatement, resetRoomStatement, resetMessageStatement].map(statement => {
+/*     await Promise.all([resetUserStatement, resetMessageStatement].map(statement => {
         return new Promise((resolve, reject) => {
             db.run(statement, (error) => {
                 if (error) {
@@ -67,7 +63,7 @@ const db = new sqlite3.Database('./config/db.sqlite', async (error) => {
             });
             
         })
-    }));
+    })); */
     
     await Promise.all([userStatement, roomStatement, messageStatement].map(statement => {
         return new Promise((resolve, reject) => {
