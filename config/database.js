@@ -35,11 +35,7 @@ const db = new sqlite3.Database('./config/db.sqlite', async (error) => {
             room_id INTEGER,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (room_id)
-                REFERENCES Room (id) ON DELETE CASCADE,
-            FOREIGN KEY (sender)
-                REFERENCES User (id) ON DELETE CASCADE,
-            FOREIGN KEY (receiver)
-                REFERENCES User (id) ON DELETE CASCADE
+                REFERENCES Room (id) ON DELETE CASCADE
         );
     `;
     
