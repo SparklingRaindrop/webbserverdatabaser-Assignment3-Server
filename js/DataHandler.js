@@ -255,6 +255,23 @@ class DataHandler {
             });
         });
     }
+    // params = { room_id or sender & receiver }
+    getMessagesBy(params) {
+        const { targets, parameters } = this.generateParams(params);
+        const query = `SELECT * FROM Message WHERE ${targets}`;
+
+        return new Promise(function(resolve, reject) {
+            db.all(query, parameters, (error, row) => {
+                if (error) {
+                    reject({
+                        error: error.message,
+                        function: 'getUserBy',
+                    });
+                }
+                resolve(row);
+            });
+        });
+    }
 
     generateParams(newDataObj) {
         const targets = Object.keys(newDataObj).reduce((result, key) => {

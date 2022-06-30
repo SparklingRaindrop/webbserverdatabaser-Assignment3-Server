@@ -64,10 +64,11 @@ class EventHandler {
         }, {type: 'init'});
 
         const roomList = await this.getRoomList();
+        //const messages = await this.dh.getMessagesBy({room_id: lobby.id});
         // Sending initial value to the user
         socket.emit('user:initialized', {
             user: newUser,
-            roomList: roomList
+            roomList: roomList,
         });
 
         // Share new data with the other users
@@ -167,6 +168,13 @@ class EventHandler {
         }
 
         socket.join(destination.name);
+        const messages = await this.dh.getMessagesBy({room_id: destination.id});
+        socket.emit('user:new_room_entered', {
+            message: {
+                room_name: destination.name,
+                messageList: messages,
+            },
+        });
 
         const newTargetUser = await this.dh.getUserBy({id: socket.id})
             .catch(reason => {
