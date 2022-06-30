@@ -7,15 +7,6 @@ const db = new sqlite3.Database('./config/db.sqlite', async (error) => {
         throw error;
     }
 
-/*     const resetUserStatement = `
-        DROP TABLE IF EXISTS User;
-    `;
-
-    const resetMessageStatement = `
-        DROP TABLE IF EXISTS Message;
-    `; */
-    
-
     const userStatement = `
         CREATE TABLE IF NOT EXISTS User (
             id STRING PRIMARY KEY,
@@ -51,19 +42,6 @@ const db = new sqlite3.Database('./config/db.sqlite', async (error) => {
                 REFERENCES User (id) ON DELETE CASCADE
         );
     `;
-
-/*     await Promise.all([resetUserStatement, resetMessageStatement].map(statement => {
-        return new Promise((resolve, reject) => {
-            db.run(statement, (error) => {
-                if (error) {
-                    console.error(error.message);
-                    reject();
-                }
-                resolve();
-            });
-            
-        })
-    })); */
     
     await Promise.all([userStatement, roomStatement, messageStatement].map(statement => {
         return new Promise((resolve, reject) => {
