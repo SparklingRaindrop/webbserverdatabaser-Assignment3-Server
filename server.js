@@ -27,10 +27,8 @@ io.use(logHandler);
 
 io.on('connection', (socket) => {
     
-    socket.on('disconnect', (reason) => {
-        if (socket.userName !== undefined && (reason === 'transport close' || reason === 'client namespace disconnect')) {
-            eventHandler.handleDisconnect(socket.userName);
-        }
+    socket.on('disconnect', () => {
+        eventHandler.handleDisconnect(socket.userName);
     });
 
     socket.on('user:ready', async ({userName}, callback) => {
