@@ -484,14 +484,14 @@ class EventHandler {
             }
         }
 
-        if (targetRoom.password !== null && data.password === '') {
+        if (targetRoom.password && !data.password) {
             return {
                 status: 403,
                 message: `Password is missing.`
             }
         }
 
-        if (targetRoom.password !== null) {
+        if (targetRoom.password) {
             const hashedPassword = md5(data.password);
             if (targetRoom.password !== hashedPassword) {
                 return {
