@@ -54,7 +54,7 @@ const db = new sqlite3.Database('./config/db.sqlite', async (error) => {
 
     const lobbyStatement = `INSERT INTO Room (name)
         SELECT name 
-        FROM (SELECT '${process.env.DEFAULT_ROOM_NAME}' as name) Sub
+        FROM (SELECT 'lobby' as name) Sub
         WHERE NOT EXISTS (SELECT 1 FROM Room WHERE Room.name = Sub.name);
     `;
     
