@@ -50,13 +50,14 @@ class EventHandler {
             id: socket.id,
             name: userName,
             current_room_id: lobby.id
-        }).catch(reason => {
-            write(reason, socket.id, {type: 'error'});
-            return {
-                status: 500,
-                message: 'Something happened on the server.',
-            };
-        });
+        })
+            .catch(reason => {
+                write(reason, socket.id, {type: 'error'});
+                return {
+                    status: 500,
+                    message: 'Something happened on the server.',
+                };
+            });
  
         await this.handleJoinRoom(socket, {
             name: 'lobby'
@@ -158,7 +159,7 @@ class EventHandler {
 
         console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} entered the room "${destination.name}"`);
         
-        if (option.type !== 'init') {
+        if (option && option.type !== 'init') {
             socket.leave(origin.name);
             socket.to(origin.name).emit('user:left_chat_room', {
             user: targetUser,
@@ -230,11 +231,16 @@ class EventHandler {
     }
 
     async handleDisconnect(userName) {
-        const targetUser = await this.dh.getUserBy({name: userName});
-        await this.dh.removeUserBy({name: userName})
+        const targetUser = await this.dh.getUserBy({name: userName})
+            .catch(reason => {
+                write(reason, undefined, {type: 'error'});
+            });
+        if (userName && targetUser) {
+            await this.dh.removeUserBy({name: userName})
             .catch(reason => {
                 write(reason, targetUser.id, {type: 'error'});
             });
+        }
         
         const roomList = await this.getRoomList();
         const allMembers = await this.dh.getAllUsers()
@@ -311,13 +317,13 @@ class EventHandler {
             newMessage.room_id = sender.current_room_id;
         } else {
             const receiverData = await this.dh.getUserBy({id: receiver})
-            .catch(reason => {
-                write(reason, socket.id, {type: 'error'});
-                return {
-                    status: 500,
-                    message: 'Something happened on the server.',
-                };
-            });
+                .catch(reason => {
+                    write(reason, socket.id, {type: 'error'});
+                    return {
+                        status: 500,
+                        message: 'Something happened on the server.',
+                    };
+                });
             newMessage.receiver= receiverData.id;
         }
         await this.dh.addMessage(newMessage)
