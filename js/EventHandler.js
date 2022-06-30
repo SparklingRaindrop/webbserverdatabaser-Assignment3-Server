@@ -159,7 +159,7 @@ class EventHandler {
 
         console.log('\x1b[34m%s\x1b[0m', `ID: ${socket.id} entered the room "${destination.name}"`);
         
-        if (option && option.type !== 'init') {
+        if (!option || option.type !== 'init') {
             socket.leave(origin.name);
             socket.to(origin.name).emit('user:left_chat_room', {
             user: targetUser,
@@ -324,6 +324,12 @@ class EventHandler {
                         message: 'Something happened on the server.',
                     };
                 });
+            if (!receiverData) {
+                return {
+                    status: 500,
+                    message: 'Couldn\'t deliver the message. The user is offline.',
+                };
+            }
             newMessage.receiver= receiverData.id;
         }
         await this.dh.addMessage(newMessage)
