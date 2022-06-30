@@ -1,6 +1,3 @@
 node_modules
 db.sqlite
-system.log
-message.log
-error.log
 .env
