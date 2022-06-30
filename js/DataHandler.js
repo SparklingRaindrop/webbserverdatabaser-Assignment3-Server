@@ -7,7 +7,10 @@ class DataHandler {
             db.all(`SELECT * FROM User`, (error, row) => {
                 if (error) {
                     console.error(error.message);
-                    reject(error);
+                    reject({
+                        error: error.message,
+                        function: 'getAllUsers',
+                    });
                 }
                 resolve(row);
             });
@@ -22,7 +25,10 @@ class DataHandler {
         return new Promise(function(resolve, reject) {
             db.get(query, parameters, (error, row) => {
                 if (error) {
-                    reject(error);
+                    reject({
+                        error: error.message,
+                        function: 'getUserBy',
+                    });
                 }
                 resolve(row);
             });
@@ -39,7 +45,10 @@ class DataHandler {
             db.run(query, parameters, (error) => {
                 if (error) {
                     console.error(error.message);
-                    reject(error);
+                    reject({
+                        error: error.message,
+                        function: 'addNewUser1',
+                    });
                 }
                 resolve();
             });
@@ -48,7 +57,10 @@ class DataHandler {
                 db.get(`SELECT User.*, Room.name AS current_room FROM User INNER JOIN Room ON Room.id = current_room_id WHERE User.id = $id`, {$id: newUser.id}, (error, row) => {
                     if (error) {
                         console.error(error.message);
-                        reject(error);
+                        reject({
+                            error: error.message,
+                            function: 'addNewUser2',
+                        });
                     }
                     resolve(row);
                 });
@@ -64,7 +76,10 @@ class DataHandler {
             db.run(query, parameters, (error, row) => {
                 if (error) {
                     console.error(error.message);
-                    reject(error);
+                    reject({
+                        error: error.message,
+                        function: 'removeUserBy',
+                    });
                 }
                 resolve(row);
             });
@@ -83,7 +98,10 @@ class DataHandler {
             }, (error) => {
                 if (error) {
                     console.error(error.message);
-                    reject(error);
+                    reject({
+                        error: error.message,
+                        function: 'moveRoom',
+                    });
                 }
                 resolve();
             });
@@ -101,7 +119,10 @@ class DataHandler {
             }, (error) => {
                 if (error) {
                     console.error(error.message);
-                    reject(error);
+                    reject({
+                        error: error.message,
+                        function: 'updateUserId',
+                    });
                 }
                 resolve();
             });
@@ -120,7 +141,10 @@ class DataHandler {
             db.run(query, parameters, (error) => {
                 if (error) {
                     console.error(error.message);
-                    reject(error);
+                    reject({
+                        error: error.message,
+                        function: 'createNewRoom1',
+                    });
                 }
                 resolve();
             });
@@ -131,7 +155,10 @@ class DataHandler {
                 }, (error, row) => {
                     if (error) {
                         console.error(error.message);
-                        reject(error);
+                        reject({
+                            error: error.message,
+                            function: 'createNewRoom2',
+                        });
                     }
                     resolve(row);
                 });
@@ -146,7 +173,10 @@ class DataHandler {
             db.get(`SELECT * FROM Room WHERE ${targets}`, parameters, (error, row) => {
                 if (error) {
                     console.error(error.message);
-                    reject(error);
+                    reject({
+                        error: error.message,
+                        function: 'getRoomBy',
+                    });
                 }
                 resolve(row);
             });
@@ -160,21 +190,27 @@ class DataHandler {
             db.all(query, (error, row) => {
                 if (error) {
                     console.error(error.message);
-                    reject(error);
+                    reject({
+                        error: error.message,
+                        function: 'getAllRoom',
+                    });
                 }
                 resolve(row);
             });
         });
     }
 
-    getMembersByRoomID(id) {
+    getMembersByRoomId(id) {
         return new Promise(function(resolve, reject) {
             db.all(`SELECT * FROM User WHERE current_room_id = $id`,{
                 $id: id
             }, (error, row) => {
                 if (error) {
                     console.error(error.message);
-                    reject(error);
+                    reject({
+                        error: error.message,
+                        function: 'getMembersByRoomId',
+                    });
                 }
                 resolve(row);
             });
@@ -188,7 +224,10 @@ class DataHandler {
             }, (error, row) => {
                 if (error) {
                     console.error(error.message);
-                    reject(error);
+                    reject({
+                        error: error.message,
+                        function: 'removeRoomById',
+                    });
                 }
                 resolve();
             });
@@ -207,7 +246,10 @@ class DataHandler {
             db.run(query, parameters, (error) => {
                 if (error) {
                     console.error(error.message);
-                    reject(error);
+                    reject({
+                        error: error.message,
+                        function: 'addMessage',
+                    });
                 }
                 resolve();
             });

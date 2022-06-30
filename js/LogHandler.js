@@ -12,7 +12,7 @@ function logHandler(socket, next) {
                 `ID: ${receiver}` :
                 Array.from(socket.rooms)[1]
             }`;
-            write(body, socket.id, {message: true});
+            write(body, socket.id, {type: 'message'});
             return;
         }
 
@@ -45,26 +45,18 @@ function generateTimestamp() {
     });
 }
 
-function write(data, id, type) {
-    let isError;
-    let isMessage;
-    if (type) {
-        if (type.error) {
-            isError = type.error;
-        } else if (type.message) {
-            isMessage = type.message;
-        }
-    }
-
+function write(data, id, option) {
     try {
-        if (isError) {
-            const log = `[${generateTimestamp()}] | ${data} | ID: ${id}\n`;
-            fs.writeFile('error.log', log, {flag: 'a'});
-        } else if (isMessage) {
-            const log = `[${generateTimestamp()}] | ${data} | By ${id}\n`;
-            fs.writeFile('message.log', log, {flag: 'a'});
+        if (option) {
+            if (option.type === 'error') {
+                const log = `[${generateTimestamp()}] | ${data.error} | ${data.function} | ID: ${id}\n`;
+                fs.writeFile('./logs/error.log', log, {flag: 'a'});
+            } else if (option.type === 'message') {
+                const log = `[${generateTimestamp()}] | ${data} | By ${id}\n`;
+                fs.writeFile('./logs/message.log', log, {flag: 'a'});
+            }
         } else {
-            fs.writeFile('system.log', data, {flag: 'a'});
+            fs.writeFile('./logs/system.log', data, {flag: 'a'});
         }
     } catch (err) {
         console.error('\x1b[43m%s\x1b[0m', err);
